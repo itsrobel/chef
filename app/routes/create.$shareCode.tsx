@@ -6,8 +6,7 @@ import { api } from '@convex/_generated/api';
 import { useCallback } from 'react';
 import { toast } from 'sonner';
 import { Toaster } from '~/components/ui/Toaster';
-import { setSelectedTeamSlug, useSelectedTeamSlug, waitForSelectedTeamSlug } from '~/lib/stores/convexTeams';
-import { TeamSelector } from '~/components/convex/TeamSelector';
+import { waitForSelectedTeamSlug } from '~/lib/stores/convexTeams';
 import { useTeamsInitializer } from '~/lib/stores/startup/useTeamsInitializer';
 import { ChefAuthProvider, useChefAuth } from '~/components/chat/ChefAuthWrapper';
 import { useParams } from '@remix-run/react';
@@ -81,8 +80,6 @@ function ShareProjectContent() {
     }
   }, [cloneChat, shareCode]);
 
-  const selectedTeamSlug = useSelectedTeamSlug();
-
   if (chefAuthState.kind === 'loading') {
     return <Loading />;
   }
@@ -101,19 +98,15 @@ function ShareProjectContent() {
 
         <div className="flex flex-col items-center space-y-4">
           <div className="space-y-2">
-            <h2 className="text-center">Select Team</h2>
-            <p className="text-center text-sm text-content-secondary">Choose where to clone this project</p>
+            <h2 className="text-center">Clone Project</h2>
+            <p className="text-center text-sm text-content-secondary">This project will be cloned to your account</p>
           </div>
-
-          {chefAuthState.kind === 'fullyLoggedIn' && (
-            <TeamSelector selectedTeamSlug={selectedTeamSlug} setSelectedTeamSlug={setSelectedTeamSlug} />
-          )}
         </div>
 
         <Button
           className="flex w-full items-center justify-center gap-2 px-6 py-3"
           onClick={handleCloneChat}
-          disabled={!selectedTeamSlug}
+          disabled={chefAuthState.kind !== 'fullyLoggedIn'}
         >
           Clone Project
         </Button>

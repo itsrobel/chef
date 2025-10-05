@@ -3,14 +3,8 @@ import { v } from "convex/values";
 import type { Infer, Validator } from "convex/values";
 import type { CoreMessage } from "ai";
 
-export const apiKeyValidator = v.object({
-  preference: v.union(v.literal("always"), v.literal("quotaExhausted")),
-  // NB: This is the *Anthropic* API key.
-  value: v.optional(v.string()),
-  openai: v.optional(v.string()),
-  xai: v.optional(v.string()),
-  google: v.optional(v.string()),
-});
+// REMOVED: apiKeyValidator
+// API keys are now only configured server-side via environment variables
 
 // A stable-enough way to store token usage.
 export const usageRecordValidator = v.object({
@@ -29,12 +23,9 @@ export default defineSchema({
    * unguessable (i.e. we should never list session IDs or return them in function
    * results).
    *
-   * Anonymous sessions - no authentication required.
-   * API keys are stored per-session.
+   * Anonymous sessions - no authentication or user tracking.
    */
-  sessions: defineTable({
-    apiKey: v.optional(apiKeyValidator),
-  }),
+  sessions: defineTable({}),
 
   /*
    * All chats have two IDs -- an `initialId` that is always set (UUID) and a `urlId`

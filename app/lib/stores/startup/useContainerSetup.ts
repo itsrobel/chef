@@ -13,8 +13,8 @@ import { toast } from 'sonner';
 import { waitForConvexProjectConnection } from '~/lib/stores/convexProject';
 import type { ConvexProject } from 'chef-agent/types';
 import type { WebContainer } from '@webcontainer/api';
-import { queryEnvVariableWithRetries, setEnvVariablesWithRetries } from 'chef-agent/convexEnvVariables';
-import { getConvexSiteUrl } from '~/lib/convexSiteUrl';
+// Removed: queryEnvVariableWithRetries, setEnvVariablesWithRetries, getConvexSiteUrl
+// These were used for setupOpenAIToken and setupResendToken which are disabled
 import { workbenchStore } from '~/lib/stores/workbench.client';
 import { initializeConvexAuth } from 'chef-agent/convexAuth';
 import { appendEnvVarIfNotSet } from '~/utils/envFileUtils';
@@ -109,11 +109,13 @@ async function setupContainer(
   const convexProject = await waitForConvexProjectConnection();
 
   setContainerBootState(ContainerBootState.SETTING_UP_CONVEX_ENV_VARS);
-  await setupConvexEnvVars(container, convexProject);
-  await setupOpenAIToken(convex, convexProject);
-  await setupResendToken(convex, convexProject);
+  if (convexProject) {
+    await setupConvexEnvVars(container, convexProject);
+  }
   setContainerBootState(ContainerBootState.CONFIGURING_CONVEX_AUTH);
-  await initializeConvexAuth(convexProject);
+  if (convexProject) {
+    await initializeConvexAuth(convexProject);
+  }
 
   setContainerBootState(ContainerBootState.STARTING_BACKUP);
   await initializeFileSystemBackup();
@@ -147,30 +149,6 @@ async function setupConvexEnvVars(webcontainer: WebContainer, convexProject: Con
   });
 }
 
-async function setupOpenAIToken(convex: ConvexReactClient, project: ConvexProject) {
-  const existing = await queryEnvVariableWithRetries(project, 'CONVEX_OPENAI_API_KEY');
-  if (existing) {
-    return;
-  }
-  const token = await convex.mutation(api.openaiProxy.issueOpenAIToken);
-  if (token) {
-    await setEnvVariablesWithRetries(project, {
-      CONVEX_OPENAI_API_KEY: token,
-      CONVEX_OPENAI_BASE_URL: getConvexSiteUrl() + '/openai-proxy',
-    });
-  }
-}
-
-async function setupResendToken(convex: ConvexReactClient, project: ConvexProject) {
-  const existing = await queryEnvVariableWithRetries(project, 'CONVEX_RESEND_API_KEY');
-  if (existing) {
-    return;
-  }
-  const token = await convex.mutation(api.resendProxy.issueResendToken);
-  if (token) {
-    await setEnvVariablesWithRetries(project, {
-      CONVEX_RESEND_API_KEY: token,
-      RESEND_BASE_URL: getConvexSiteUrl() + '/resend-proxy',
-    });
-  }
-}
+// REMOVED: setupOpenAIToken and setupResendToken
+// These required Big Brain proxy tokens which are no longer available
+// Users must configure their own API keys via the settings UI

@@ -4,8 +4,6 @@ import { convexAgent } from '~/lib/.server/llm/convex-agent';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { BatchSpanProcessor, WebTracerProvider } from '@opentelemetry/sdk-trace-web';
 import type { LanguageModelUsage, Message, ProviderMetadata } from 'ai';
-import { checkTokenUsage, recordUsage } from '~/lib/.server/usage';
-import { disabledText, noTokensText } from '~/lib/convexUsage';
 import type { ModelProvider } from '~/lib/.server/llm/provider';
 import { getEnv } from '~/lib/.server/env';
 import type { PromptCharacterCounts } from 'chef-agent/ChatContextManager';
@@ -20,7 +18,6 @@ export async function chatAction({ request }: ActionFunctionArgs) {
   const AXIOM_API_TOKEN = getEnv('AXIOM_API_TOKEN');
   const AXIOM_API_URL = getEnv('AXIOM_API_URL');
   const AXIOM_DATASET_NAME = getEnv('AXIOM_DATASET_NAME');
-  const PROVISION_HOST = getEnv('PROVISION_HOST') || 'https://api.convex.dev';
 
   let tracer: Tracer | null = null;
   if (AXIOM_API_TOKEN && AXIOM_API_URL && AXIOM_DATASET_NAME) {
@@ -34,13 +31,9 @@ export async function chatAction({ request }: ActionFunctionArgs) {
     const provider = new WebTracerProvider({
       spanProcessors: [
         new BatchSpanProcessor(exporter, {
-          // The maximum queue size. After the size is reached spans are dropped.
           maxQueueSize: 100,
-          // The maximum batch size of every export. It must be smaller or equal to maxQueueSize.
           maxExportBatchSize: 10,
-          // The interval between two consecutive exports
           scheduledDelayMillis: 500,
-          // How long the export can run before it is cancelled
           exportTimeoutMillis: 30000,
         }),
       ],
@@ -56,14 +49,9 @@ export async function chatAction({ request }: ActionFunctionArgs) {
     messages: Messages;
     firstUserMessage: boolean;
     chatInitialId: string;
-    token: string;
-    teamSlug: string;
-    deploymentName: string | undefined;
+    _deploymentName: string | undefined;
     modelProvider: ModelProvider;
     modelChoice: string | undefined;
-    userApiKey:
-      | { preference: 'always' | 'quotaExhausted'; value?: string; openai?: string; xai?: string; google?: string }
-      | undefined;
     shouldDisableTools: boolean;
     recordRawPromptsForDebugging?: boolean;
     collapsedMessages: boolean;
@@ -72,98 +60,26 @@ export async function chatAction({ request }: ActionFunctionArgs) {
       enableResend?: boolean;
     };
   };
-  const { messages, firstUserMessage, chatInitialId, deploymentName, token, teamSlug, recordRawPromptsForDebugging } =
-    body;
+  const { messages, firstUserMessage, chatInitialId, _deploymentName, recordRawPromptsForDebugging } = body;
 
   if (getEnv('DISABLE_BEDROCK') === '1' && body.modelProvider === 'Bedrock') {
     body.modelProvider = 'Anthropic';
   }
 
-  let useUserApiKey = false;
+  // Anonymous mode: Always use server-side API keys from environment variables
+  const userApiKey = undefined;
 
-  // Use the user's API key if they're set to always mode or if they manually set a model.
-  // Sonnet 4 can be used with the default API key since it has the same pricing as Sonnet 3.5
-  // GPT-5 can be used with our own API key since it has the same pricing as Gemini 2.5 Pro
-  if (
-    body.userApiKey?.preference === 'always' ||
-    (body.modelChoice &&
-      body.modelChoice !== 'claude-sonnet-4-0' &&
-      body.modelChoice !== 'gpt-5' &&
-      body.modelChoice !== 'claude-sonnet-4-5')
-  ) {
-    useUserApiKey = true;
-  }
+  logger.info(`Using model provider: ${body.modelProvider} with server-side API keys`);
 
-  // If they're not set to always mode, check to see if the user has any Convex tokens left.
-  if (body.userApiKey?.preference !== 'always') {
-    const resp = await checkTokenUsage(PROVISION_HOST, token, teamSlug, deploymentName);
-    if (resp.status === 'error') {
-      return new Response(JSON.stringify({ error: 'Failed to check for tokens' }), {
-        status: resp.httpStatus,
-      });
-    }
-    const { centitokensUsed, centitokensQuota, isTeamDisabled, isPaidPlan } = resp;
-    if (isTeamDisabled) {
-      return new Response(JSON.stringify({ error: disabledText(isPaidPlan) }), {
-        status: 402,
-      });
-    }
-    if (centitokensUsed >= centitokensQuota) {
-      if (!isPaidPlan && !hasApiKeySetForProvider(body.userApiKey, body.modelProvider)) {
-        // If they're not on a paid plan and don't have an API key set, return an error.
-        logger.error(`No tokens available for ${deploymentName}: ${centitokensUsed} of ${centitokensQuota}`);
-        return new Response(
-          JSON.stringify({ code: 'no-tokens', error: noTokensText(centitokensUsed, centitokensQuota) }),
-          {
-            status: 402,
-          },
-        );
-      } else if (hasApiKeySetForProvider(body.userApiKey, body.modelProvider)) {
-        // If they have an API key set, use it. Otherwise, they use Convex tokens.
-        useUserApiKey = true;
-      }
-    }
-  }
-
-  let userApiKey: string | undefined;
-  if (useUserApiKey) {
-    if (body.modelProvider === 'Anthropic' || body.modelProvider === 'Bedrock') {
-      userApiKey = body.userApiKey?.value;
-      body.modelProvider = 'Anthropic';
-    } else if (body.modelProvider === 'OpenAI') {
-      userApiKey = body.userApiKey?.openai;
-    } else if (body.modelProvider === 'XAI') {
-      userApiKey = body.userApiKey?.xai;
-    } else {
-      userApiKey = body.userApiKey?.google;
-    }
-
-    if (!userApiKey) {
-      return new Response(
-        JSON.stringify({ code: 'missing-api-key', error: `Tried to use missing ${body.modelProvider} API key.` }),
-        {
-          status: 402,
-        },
-      );
-    }
-  }
-  logger.info(`Using model provider: ${body.modelProvider} (user API key: ${useUserApiKey})`);
-
+  // No usage recording in anonymous mode
   const recordUsageCb = async (
     lastMessage: Message | undefined,
     finalGeneration: { usage: LanguageModelUsage; providerMetadata?: ProviderMetadata },
   ) => {
-    if (!userApiKey && getEnv('DISABLE_USAGE_REPORTING') !== '1') {
-      await recordUsage(
-        PROVISION_HOST,
-        token,
-        body.modelProvider,
-        teamSlug,
-        deploymentName,
-        lastMessage,
-        finalGeneration,
-      );
-    }
+    logger.debug('Usage recording disabled in anonymous mode', {
+      usage: finalGeneration.usage,
+      provider: body.modelProvider,
+    });
   };
 
   try {
@@ -175,14 +91,7 @@ export async function chatAction({ request }: ActionFunctionArgs) {
       messages,
       tracer,
       modelProvider: body.modelProvider,
-      // Only set the requested model choice if we're using a user API key or Claude 4 Sonnet/GPT-5
-      modelChoice:
-        userApiKey ||
-        body.modelChoice === 'claude-sonnet-4-0' ||
-        body.modelChoice === 'gpt-5' ||
-        body.modelChoice === 'claude-sonnet-4-5'
-          ? body.modelChoice
-          : undefined,
+      modelChoice: body.modelChoice,
       userApiKey,
       shouldDisableTools: body.shouldDisableTools,
       recordUsageCb,
@@ -217,26 +126,5 @@ export async function chatAction({ request }: ActionFunctionArgs) {
       status: 500,
       statusText: 'Internal Server Error',
     });
-  }
-}
-
-// Returns whether or not the user has an API key set for a given provider
-function hasApiKeySetForProvider(
-  userApiKey:
-    | { preference: 'always' | 'quotaExhausted'; value?: string; openai?: string; xai?: string; google?: string }
-    | undefined,
-  provider: ModelProvider,
-) {
-  switch (provider) {
-    case 'Anthropic':
-      return userApiKey?.value !== undefined;
-    case 'OpenAI':
-      return userApiKey?.openai !== undefined;
-    case 'XAI':
-      return userApiKey?.xai !== undefined;
-    case 'Google':
-      return userApiKey?.google !== undefined;
-    default:
-      return false;
   }
 }

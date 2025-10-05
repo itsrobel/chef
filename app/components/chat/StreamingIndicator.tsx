@@ -14,11 +14,6 @@ import { Loading } from '@ui/Loading';
 import { useSelectedTeamSlug } from '~/lib/stores/convexTeams';
 import { useReferralCode, useReferralStats } from '~/lib/hooks/useReferralCode';
 import { Popover } from '@ui/Popover';
-import { hasApiKeySet } from '~/lib/common/apiKey';
-import type { ModelSelection } from '~/utils/constants';
-import { useQuery } from 'convex/react';
-import { api } from '@convex/_generated/api';
-import { useConvexSessionId } from '~/lib/stores/sessionId';
 
 type StreamStatus = 'streaming' | 'submitted' | 'ready' | 'error';
 
@@ -29,7 +24,6 @@ interface StreamingIndicatorProps {
   toolStatus?: ToolStatus;
   currentError?: Error;
   resendMessage: () => void;
-  modelSelection: ModelSelection;
 }
 
 // Icon components
@@ -184,11 +178,7 @@ export default function StreamingIndicator(props: StreamingIndicatorProps) {
                       <div className="">{icon}</div>
                       {message}
                       <div className="min-h-6 grow" />
-                      <LittleUsage
-                        teamSlug={teamSlug}
-                        streamStatus={streamStatus}
-                        modelSelection={props.modelSelection}
-                      />
+                      <LittleUsage teamSlug={teamSlug} streamStatus={streamStatus} />
                       {streamStatus === 'error' && (
                         <Button
                           type="button"
@@ -239,22 +229,11 @@ function displayChefTokenNumber(num: number) {
   return num.toString();
 }
 
-function LittleUsage({
-  teamSlug,
-  streamStatus,
-  modelSelection,
-}: {
-  teamSlug: string | null;
-  streamStatus: StreamStatus;
-  modelSelection: ModelSelection;
-}) {
+function LittleUsage({ teamSlug, streamStatus }: { teamSlug: string | null; streamStatus: StreamStatus }) {
   const { isLoadingUsage, usagePercentage, used, quota, isPaidPlan, refetch } = useUsage({ teamSlug });
   const referralStats = useReferralStats();
   const referralCode = useReferralCode();
   const loading = isLoadingUsage || !referralStats || !referralCode || !teamSlug;
-  const useGeminiAuto = false;
-  const sessionId = useConvexSessionId();
-  const apiKey = useQuery(api.apiKeys.apiKeyForCurrentMember, { sessionId });
 
   useEffect(() => {
     if (streamStatus === 'ready') {
@@ -266,28 +245,19 @@ function LittleUsage({
     return null;
   }
 
-  const usingApiKey = hasApiKeySet(modelSelection, useGeminiAuto, apiKey);
-  const alwaysUsingApiKey = usingApiKey && apiKey?.preference === 'always';
-
-  // show referral or upgrade CTA
-  const needsMore = !isPaidPlan && !alwaysUsingApiKey && !(usingApiKey && usagePercentage > 100);
-  // donut isn't relevant if always using API key
-  const hideDonut = alwaysUsingApiKey || (!!isPaidPlan && usagePercentage > 100);
+  // No client-side API keys - show referral or upgrade CTA
+  const needsMore = !isPaidPlan;
+  // donut isn't relevant if over quota
+  const hideDonut = !!isPaidPlan && usagePercentage > 100;
 
   // appears to the right of the donut
-  const label = alwaysUsingApiKey
-    ? `Using API key instead of tokens`
-    : isPaidPlan
-      ? usagePercentage > 100
-        ? usingApiKey
-          ? `Using API key`
-          : `Token usage`
-        : `${Math.floor(usagePercentage)}% tokens used`
-      : usagePercentage > 100
-        ? usingApiKey
-          ? `Using API key`
-          : `Out of tokens`
-        : `${Math.floor(usagePercentage)}% tokens used`;
+  const label = isPaidPlan
+    ? usagePercentage > 100
+      ? `Token usage`
+      : `${Math.floor(usagePercentage)}% tokens used`
+    : usagePercentage > 100
+      ? `Out of tokens`
+      : `${Math.floor(usagePercentage)}% tokens used`;
 
   const detailedLabel = isPaidPlan
     ? `${displayChefTokenNumber(used)} tokens used / ${displayChefTokenNumber(quota)} included (${Math.floor(usagePercentage)}%)`
@@ -295,9 +265,7 @@ function LittleUsage({
       ? ''
       : usagePercentage < 100
         ? `${displayChefTokenNumber(used)} tokens used / ${displayChefTokenNumber(quota)} (${Math.floor(usagePercentage)}%)`
-        : usingApiKey
-          ? `Out of tokens (${displayChefTokenNumber(used)} used), using API key`
-          : `Out of tokens`;
+        : `Out of tokens`;
 
   return (
     <div className={classNames('flex flex-col items-center', needsMore ? 'h-auto' : 'h-6')}>
@@ -355,25 +323,7 @@ function LittleUsage({
                 </li>
               )}
               <li className="mt-2 border-t pt-2 text-xs text-content-secondary">
-                {usingApiKey ? (
-                  usagePercentage >= 100 ? (
-                    "You're using an API key so can keep building without using Chef tokens."
-                  ) : (
-                    "You have an API key set for the model you're using so you'll be able to keep building after running out of Chef tokens."
-                  )
-                ) : (
-                  <>
-                    <Button
-                      href="/settings"
-                      target="_blank"
-                      variant="unstyled"
-                      className="underline hover:text-content-link"
-                    >
-                      Add your own API key
-                    </Button>{' '}
-                    in settings to avoid spending Chef tokens.
-                  </>
-                )}
+                Chef tokens are provided for free. Server-side API keys can be configured via environment variables.
               </li>
             </ul>
           </div>

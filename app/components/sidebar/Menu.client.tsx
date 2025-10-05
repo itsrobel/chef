@@ -12,11 +12,10 @@ import { useSearchFilter } from '~/lib/hooks/useSearchFilter';
 import { classNames } from '~/utils/classNames';
 import { useConvex, useQuery } from 'convex/react';
 import { api } from '@convex/_generated/api';
-import { getConvexAuthToken, useConvexSessionIdOrNullOrLoading } from '~/lib/stores/sessionId';
+import { useConvexSessionIdOrNullOrLoading } from '~/lib/stores/sessionId';
 import { getKnownInitialId } from '~/lib/stores/chatId';
 import { Button } from '@ui/Button';
 import { TextInput } from '@ui/TextInput';
-import { Checkbox } from '@ui/Checkbox';
 import { PlusIcon } from '@radix-ui/react-icons';
 
 const menuVariants = {
@@ -53,16 +52,6 @@ export const Menu = memo(({ isOpen, onClose }: MenuProps) => {
   const convex = useConvex();
   const list = useQuery(api.messages.getAll, sessionId ? { sessionId } : 'skip') ?? [];
   const [dialogContent, setDialogContent] = useState<ModalContent>(null);
-  const [shouldDeleteConvexProject, setShouldDeleteConvexProject] = useState(false);
-  const convexProjectInfo = useQuery(
-    api.convexProjects.loadConnectedConvexProjectCredentials,
-    dialogContent?.type === 'delete' && sessionId
-      ? {
-          sessionId,
-          chatId: dialogContent.item.initialId,
-        }
-      : 'skip',
-  );
 
   const { filteredItems: filteredList, handleSearchChange } = useSearchFilter({
     items: list,
@@ -71,8 +60,7 @@ export const Menu = memo(({ isOpen, onClose }: MenuProps) => {
 
   const deleteItem = useCallback(
     (item: ChatHistoryItem) => {
-      const accessToken = getConvexAuthToken(convex);
-      if (!sessionId || !accessToken) {
+      if (!sessionId) {
         return;
       }
       convex
@@ -96,7 +84,6 @@ export const Menu = memo(({ isOpen, onClose }: MenuProps) => {
 
   const closeDialog = () => {
     setDialogContent(null);
-    setShouldDeleteConvexProject(false);
   };
 
   useEffect(() => {
@@ -196,36 +183,12 @@ export const Menu = memo(({ isOpen, onClose }: MenuProps) => {
                 dialogTitle="Delete Chat"
                 validationText={dialogContent?.item.description || 'New chat...'}
                 dialogBody={
-                  <>
-                    <p>
-                      You are about to delete{' '}
-                      <span className="font-medium text-content-primary">
-                        {dialogContent?.item.description || 'New chat...'}
-                      </span>
-                    </p>
-                    {convexProjectInfo?.kind === 'connected' && (
-                      <div className="mt-4 flex items-center gap-2">
-                        <Checkbox
-                          id="delete-convex-project"
-                          checked={shouldDeleteConvexProject}
-                          onChange={() => setShouldDeleteConvexProject(!shouldDeleteConvexProject)}
-                        />
-
-                        <label htmlFor="delete-convex-project" className="text-pretty text-content-secondary">
-                          Also delete the associated Convex project (
-                          <a
-                            href={`https://dashboard.convex.dev/p/${convexProjectInfo.projectSlug}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-content-link hover:underline"
-                          >
-                            {convexProjectInfo.projectSlug}
-                          </a>
-                          )
-                        </label>
-                      </div>
-                    )}
-                  </>
+                  <p>
+                    You are about to delete{' '}
+                    <span className="font-medium text-content-primary">
+                      {dialogContent?.item.description || 'New chat...'}
+                    </span>
+                  </p>
                 }
               />
             )}

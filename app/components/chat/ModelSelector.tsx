@@ -3,11 +3,7 @@ import { MagicWandIcon } from '@radix-ui/react-icons';
 import type { ModelSelection } from '~/utils/constants';
 import React from 'react';
 import { Tooltip } from '@ui/Tooltip';
-import { HandThumbUpIcon, KeyIcon } from '@heroicons/react/24/outline';
-import { useQuery } from 'convex/react';
-import { api } from '@convex/_generated/api';
-import type { Doc } from '@convex/_generated/dataModel';
-import { useConvexSessionId } from '~/lib/stores/sessionId';
+import { HandThumbUpIcon } from '@heroicons/react/24/outline';
 export type ModelProvider = 'openai' | 'google' | 'xai' | 'anthropic' | 'auto';
 
 export function displayModelProviderName(provider: ModelProvider) {
@@ -120,10 +116,7 @@ export const ModelSelector = React.memo(function ModelSelector({
   setModelSelection,
   size = 'md',
 }: ModelSelectorProps) {
-  const sessionId = useConvexSessionId();
-  const apiKey = useQuery(api.apiKeys.apiKeyForCurrentMember, { sessionId });
   const selectedModel = models[modelSelection];
-  const useGeminiAuto = false;
   const enableGpt5 = false;
   if (!selectedModel) {
     console.error(`Model ${modelSelection} not found`);
@@ -160,9 +153,6 @@ export const ModelSelector = React.memo(function ModelSelector({
         if (!model) {
           return null;
         }
-        const prefersAlwaysUseApiKey = apiKey?.preference === 'always';
-        const key = apiKey ? keyForProvider(apiKey, model.provider, useGeminiAuto) : undefined;
-        const canUseModel = !(model.requireKey && !key) && !(prefersAlwaysUseApiKey && !key);
         return (
           <div className={'flex items-center gap-2'}>
             {providerToIcon[model.provider]}
@@ -178,18 +168,6 @@ export const ModelSelector = React.memo(function ModelSelector({
                     <HandThumbUpIcon className="size-4 text-content-secondary" />
                   </Tooltip>
                 )}
-                {!canUseModel && (
-                  <Tooltip
-                    tip={
-                      model.requireKey
-                        ? 'You must set an API key for the relevant provider to use this model.'
-                        : 'Your preferences require an API key to be set to use this model. You may change your preferences or set an API key.'
-                    }
-                    side="right"
-                  >
-                    <KeyIcon className="size-4 text-content-secondary" />
-                  </Tooltip>
-                )}
               </div>
             )}
           </div>
@@ -198,17 +176,3 @@ export const ModelSelector = React.memo(function ModelSelector({
     />
   );
 });
-
-const keyForProvider = (apiKeys: Doc<'sessions'>['apiKey'], provider: ModelProvider, useGeminiAuto: boolean) => {
-  if (provider === 'anthropic') {
-    return apiKeys?.value;
-  }
-  if (provider === 'auto') {
-    if (useGeminiAuto) {
-      return apiKeys?.google;
-    } else {
-      return apiKeys?.value;
-    }
-  }
-  return apiKeys?.[provider];
-};

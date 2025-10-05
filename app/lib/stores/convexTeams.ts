@@ -1,57 +1,18 @@
-import { useStore } from '@nanostores/react';
+// DISABLED: Teams are not supported in anonymous session mode
+// This is a stub to prevent breaking imports
+
 import { atom } from 'nanostores';
-import { getLocalStorage, setLocalStorage } from '~/lib/persistence';
 
-export type ConvexTeam = {
-  id: string;
-  name: string;
-  slug: string;
-  referralCode: string;
-};
+export const selectedTeamSlugStore = atom<null>(null);
 
-export const convexTeamsStore = atom<ConvexTeam[] | null>(null);
-
-const SELECTED_TEAM_SLUG_KEY = 'selectedConvexTeamSlug';
-export const selectedTeamSlugStore = atom<string | null>(null);
-
-export function getStoredTeamSlug(): string | null {
-  return getLocalStorage(SELECTED_TEAM_SLUG_KEY);
+export function useSelectedTeamSlug(): null {
+  return null;
 }
 
-export function setSelectedTeamSlug(teamSlug: string | null) {
-  setLocalStorage(SELECTED_TEAM_SLUG_KEY, teamSlug);
-  selectedTeamSlugStore.set(teamSlug);
+export function setSelectedTeamSlug(_slug: string | null) {
+  // No-op: Teams are not supported
 }
 
-export function useSelectedTeamSlug(): string | null {
-  const selectedTeamSlug = useStore(selectedTeamSlugStore);
-  return selectedTeamSlug;
-}
-
-export function useSelectedTeam(): ConvexTeam | null {
-  const teams = useStore(convexTeamsStore);
-  const slug = useSelectedTeamSlug();
-  if (teams === null || slug === null) {
-    return null;
-  }
-  return teams.find((t) => t.slug === slug) || null;
-}
-
-export async function waitForSelectedTeamSlug(caller?: string): Promise<string> {
-  return new Promise((resolve) => {
-    const selectedTeamSlug = selectedTeamSlugStore.get();
-    if (selectedTeamSlug !== null) {
-      resolve(selectedTeamSlug);
-      return;
-    }
-    if (caller) {
-      console.log(`[${caller}] Waiting for selected team slug...`);
-    }
-    const unsubscribe = selectedTeamSlugStore.subscribe((selectedTeamSlug) => {
-      if (selectedTeamSlug !== null) {
-        unsubscribe();
-        resolve(selectedTeamSlug);
-      }
-    });
-  });
+export async function waitForSelectedTeamSlug(_caller?: string): Promise<null> {
+  return null;
 }

@@ -28,48 +28,21 @@ export function renderTokenCount(tokens: number) {
 export function noTokensText(centitokensUsed: number, centitokensQuota: number) {
   return (
     `No remaining tokens available. ` +
-    `Please upgrade to a paid plan or add your own API key at chef.convex.dev/settings to continue. ` +
     `Used ${renderTokenCount(Math.floor(centitokensUsed / 100))} of ${renderTokenCount(Math.floor(centitokensQuota / 100))}.`
   );
 }
 
+// Stubbed for anonymous mode - no Big Brain API calls
 export async function getTokenUsage(
-  provisionHost: string,
-  convexAuthToken: string,
-  teamSlug: string,
+  _provisionHost: string,
+  _convexAuthToken: string,
+  _teamSlug: string,
 ): Promise<CheckTokenUsageResponse> {
-  const url = `${provisionHost}/api/dashboard/teams/${teamSlug}/usage/get_token_info`;
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${convexAuthToken}`,
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Failed to fetch usage: ${response.statusText}: ${body}`);
-  }
-  if (!response.ok) {
-    const body = await response.text();
-    return {
-      status: 'error',
-      httpStatus: response.status,
-      httpBody: body,
-    };
-  }
-  const {
-    centitokensUsed,
-    centitokensQuota,
-    isTeamDisabled,
-    isPaidPlan,
-  }: { centitokensUsed: number; centitokensQuota: number; isTeamDisabled: boolean; isPaidPlan: boolean } =
-    await response.json();
   return {
     status: 'success',
-    centitokensUsed,
-    centitokensQuota,
-    isTeamDisabled,
-    isPaidPlan,
+    centitokensUsed: 0,
+    centitokensQuota: Infinity,
+    isTeamDisabled: false,
+    isPaidPlan: false,
   };
 }

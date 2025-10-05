@@ -1,28 +1,25 @@
 import type { LanguageModelUsage, Message, ProviderMetadata } from 'ai';
 import { createScopedLogger } from 'chef-agent/utils/logger';
-import { getTokenUsage } from '~/lib/convexUsage';
 import type { ProviderType, UsageAnnotation } from '~/lib/common/annotations';
 import { modelForProvider, type ModelProvider } from './llm/provider';
-import { calculateTotalBilledUsageForMessage, calculateChefTokens } from '~/lib/common/usage';
 
 const logger = createScopedLogger('usage');
 
+// Stubbed for anonymous mode - no Big Brain API calls
 export async function checkTokenUsage(
-  provisionHost: string,
-  token: string,
-  teamSlug: string,
-  deploymentName: string | undefined,
+  _provisionHost: string,
+  _token: string,
+  _teamSlug: string,
+  _deploymentName: string | undefined,
 ) {
-  const tokenUsage = await getTokenUsage(provisionHost, token, teamSlug);
-  if (tokenUsage.status === 'error') {
-    logger.error(`Failed to check for token usage: ${tokenUsage.httpStatus}: ${tokenUsage.httpBody}`);
-  }
-  if (tokenUsage.status === 'success') {
-    logger.info(
-      `${teamSlug}/${deploymentName}: Tokens used: ${tokenUsage.centitokensUsed} / ${tokenUsage.centitokensQuota}`,
-    );
-  }
-  return tokenUsage;
+  logger.info('Token usage checking disabled in anonymous mode');
+  return {
+    status: 'success' as const,
+    centi_tokensUsed: 0,
+    centi_tokensQuota: Infinity,
+    isTeamDisabled: false,
+    isPaidPlan: false,
+  };
 }
 
 export function encodeUsageAnnotation(
@@ -67,45 +64,19 @@ export function encodeModelAnnotation(
   return { toolCallId: call.kind === 'tool-call' ? call.toolCallId : 'final', provider, model };
 }
 
+// Stubbed for anonymous mode - no Big Brain API calls
 export async function recordUsage(
-  provisionHost: string,
-  token: string,
+  _provisionHost: string,
+  _token: string,
   modelProvider: ModelProvider,
-  teamSlug: string,
-  deploymentName: string | undefined,
+  _teamSlug: string,
+  _deploymentName: string | undefined,
   lastMessage: Message | undefined,
   finalGeneration: { usage: LanguageModelUsage; providerMetadata?: ProviderMetadata },
 ) {
-  const totalUsageBilledFor = await calculateTotalBilledUsageForMessage(lastMessage, finalGeneration);
-  const { chefTokens } = calculateChefTokens(totalUsageBilledFor, modelProvider);
-
-  if (chefTokens === 0) {
-    console.error('Recorded usage was 0. Something wrong with provider?', {
-      teamSlug,
-      deploymentName,
-      modelProvider,
-    });
-  }
-
-  const Authorization = `Bearer ${token}`;
-  const url = `${provisionHost}/api/dashboard/teams/${teamSlug}/usage/record_tokens`;
-
-  logger.info('Logging total usage', JSON.stringify(totalUsageBilledFor), 'corresponding to chef tokens', chefTokens);
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      centitokens: chefTokens,
-    }),
+  logger.info('Usage recording disabled in anonymous mode', {
+    modelProvider,
+    _deploymentName,
+    usage: finalGeneration.usage,
   });
-  if (!response.ok) {
-    logger.error('Failed to record usage', response);
-    logger.error(await response.json());
-  }
-
-  const { centitokensUsed, centitokensQuota } = await response.json();
-  logger.info(`${teamSlug}/${deploymentName}: Tokens used: ${centitokensUsed} / ${centitokensQuota}`);
 }

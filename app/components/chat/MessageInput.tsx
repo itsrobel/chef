@@ -18,14 +18,11 @@ import { useSearchParams } from '@remix-run/react';
 import { classNames } from '~/utils/classNames';
 import { PROMPT_COOKIE_KEY, type ModelSelection } from '~/utils/constants';
 import { ModelSelector } from './ModelSelector';
-import { TeamSelector } from '~/components/convex/TeamSelector';
 import { ArrowRightIcon, ExclamationTriangleIcon, MagnifyingGlassIcon, StopIcon } from '@radix-ui/react-icons';
 import { SquaresPlusIcon } from '@heroicons/react/24/outline';
 import { Tooltip } from '@ui/Tooltip';
-import { setSelectedTeamSlug, useSelectedTeamSlug } from '~/lib/stores/convexTeams';
 import { convexProjectStore } from '~/lib/stores/convexProject';
 import { useChefAuth } from './ChefAuthWrapper';
-import { getConvexAuthToken, useConvexSessionIdOrNullOrLoading } from '~/lib/stores/sessionId';
 import { KeyboardShortcut } from '@ui/KeyboardShortcut';
 import { Button } from '@ui/Button';
 import { Spinner } from '@ui/Spinner';
@@ -34,7 +31,6 @@ import { toast } from 'sonner';
 import { Menu as MenuComponent, MenuItem as MenuItemComponent } from '@ui/Menu';
 import { PencilSquareIcon } from '@heroicons/react/24/outline';
 import { ChatBubbleLeftIcon, DocumentArrowUpIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
-import { useConvex } from 'convex/react';
 
 const PROMPT_LENGTH_WARNING_THRESHOLD = 2000;
 
@@ -109,10 +105,7 @@ export const MessageInput = memo(function MessageInput({
   numMessages: number | undefined;
 }) {
   const [isEnhancing, setIsEnhancing] = useState(false);
-  const sessionId = useConvexSessionIdOrNullOrLoading();
   const chefAuthState = useChefAuth();
-  const selectedTeamSlug = useSelectedTeamSlug();
-  const convex = useConvex();
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -149,7 +142,7 @@ export const MessageInput = memo(function MessageInput({
 
   const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = useCallback(
     (event) => {
-      if (event.key === 'Enter' && selectedTeamSlug) {
+      if (event.key === 'Enter') {
         if (event.shiftKey) {
           return;
         }
@@ -169,7 +162,7 @@ export const MessageInput = memo(function MessageInput({
         handleSend();
       }
     },
-    [selectedTeamSlug, handleSend, isStreaming, onStop],
+    [handleSend, isStreaming, onStop],
   );
 
   const handleChange: ChangeEventHandler<HTMLTextAreaElement> = useCallback((event) => {
@@ -182,10 +175,6 @@ export const MessageInput = memo(function MessageInput({
     try {
       setIsEnhancing(true);
 
-      const token = getConvexAuthToken(convex);
-      if (!token) {
-        throw new Error('No auth token');
-      }
       const response = await fetch('/api/enhance-prompt', {
         method: 'POST',
         headers: {
@@ -193,8 +182,7 @@ export const MessageInput = memo(function MessageInput({
         },
         body: JSON.stringify({
           prompt: input.trim(),
-          token,
-          teamSlug: selectedTeamSlug,
+          teamSlug: null, // Teams disabled in anonymous mode
           deploymentName: convexProjectStore.get()?.deploymentName,
         }),
       });
@@ -216,7 +204,7 @@ export const MessageInput = memo(function MessageInput({
     } finally {
       setIsEnhancing(false);
     }
-  }, [input, convex, selectedTeamSlug]);
+  }, [input]);
 
   // Helper to insert template and select '[...]'
   const insertTemplate = useCallback(
@@ -272,14 +260,6 @@ export const MessageInput = memo(function MessageInput({
           {chefAuthState.kind === 'fullyLoggedIn' && (
             <ModelSelector modelSelection={modelSelection} setModelSelection={setModelSelection} size="sm" />
           )}
-          {!chatStarted && sessionId && (
-            <TeamSelector
-              description="Your project will be created in this Convex team"
-              selectedTeamSlug={selectedTeamSlug}
-              setSelectedTeamSlug={setSelectedTeamSlug}
-              size="sm"
-            />
-          )}
           {input.length > 3 && input.length <= PROMPT_LENGTH_WARNING_THRESHOLD && <NewLineShortcut />}
           {input.length > PROMPT_LENGTH_WARNING_THRESHOLD && <CharacterWarning />}
           <div className="ml-auto flex items-center gap-1">
@@ -334,25 +314,18 @@ export const MessageInput = memo(function MessageInput({
             {chefAuthState.kind === 'fullyLoggedIn' && (
               <EnhancePromptButton
                 isEnhancing={isEnhancing}
-                disabled={!selectedTeamSlug || disabled || input.length === 0}
+                disabled={disabled || input.length === 0}
                 onClick={enhancePrompt}
               />
             )}
             <Button
               disabled={
                 (!isStreaming && input.length === 0) ||
-                !selectedTeamSlug ||
                 chefAuthState.kind === 'loading' ||
                 sendMessageInProgress ||
                 disabled
               }
-              tip={
-                chefAuthState.kind === 'unauthenticated'
-                  ? 'Please sign in to continue'
-                  : !selectedTeamSlug
-                    ? 'Please select a team to continue'
-                    : undefined
-              }
+              tip={chefAuthState.kind === 'unauthenticated' ? 'Please sign in to continue' : undefined}
               onClick={handleClickButton}
               size="xs"
               className="ml-2 h-[1.625rem]"

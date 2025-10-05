@@ -1,7 +1,6 @@
 import { toast } from 'sonner';
 import { Button } from '@ui/Button';
 import { SymbolIcon } from '@radix-ui/react-icons';
-import { captureMessage } from '@sentry/remix';
 import useSWR from 'swr';
 
 export default function useVersionNotificationBanner() {
@@ -47,9 +46,9 @@ const versionFetcher = async (url: string) => {
   if (!res.ok) {
     try {
       const { error } = await res.json();
-      captureMessage(error);
+      console.error(error);
     } catch (_e) {
-      captureMessage('Failed to fetch dashboard version information.');
+      console.error('Failed to fetch dashboard version information.');
     }
     throw new Error('Failed to fetch dashboard version information.');
   }

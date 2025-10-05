@@ -32,7 +32,6 @@ import { Button } from '@ui/Button';
 import { Spinner } from '@ui/Spinner';
 import { debounce } from '~/utils/debounce';
 import { toast } from 'sonner';
-import { captureException } from '@sentry/remix';
 import { Menu as MenuComponent, MenuItem as MenuItemComponent } from '@ui/Menu';
 import { PencilSquareIcon } from '@heroicons/react/24/outline';
 import { ChatBubbleLeftIcon, DocumentArrowUpIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
@@ -214,12 +213,7 @@ export const MessageInput = memo(function MessageInput({
         messageInputStore.set(data.enhancedPrompt);
       }
     } catch (error) {
-      captureException('Failed to enhance prompt', {
-        level: 'error',
-        extra: {
-          error,
-        },
-      });
+      console.error('Failed to enhance prompt', error);
       toast.error(error instanceof Error ? error.message : 'Failed to enhance prompt. Please try again.');
     } finally {
       setIsEnhancing(false);

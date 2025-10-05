@@ -16,7 +16,6 @@ import { useReferralCode, useReferralStats } from '~/lib/hooks/useReferralCode';
 import { Popover } from '@ui/Popover';
 import { hasApiKeySet } from '~/lib/common/apiKey';
 import type { ModelSelection } from '~/utils/constants';
-import { useLaunchDarkly } from '~/lib/hooks/useLaunchDarkly';
 import { useQuery } from 'convex/react';
 import { api } from '@convex/_generated/api';
 
@@ -252,7 +251,7 @@ function LittleUsage({
   const referralStats = useReferralStats();
   const referralCode = useReferralCode();
   const loading = isLoadingUsage || !referralStats || !referralCode || !teamSlug;
-  const { useGeminiAuto } = useLaunchDarkly();
+  const useGeminiAuto = false;
   const apiKey = useQuery(api.apiKeys.apiKeyForCurrentMember);
 
   useEffect(() => {

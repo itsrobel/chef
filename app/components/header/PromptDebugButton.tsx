@@ -1,11 +1,8 @@
 import { TextAlignLeftIcon } from '@radix-ui/react-icons';
 import { Button } from '@ui/Button';
-import { useQuery } from 'convex/react';
-import { api } from '@convex/_generated/api';
 import { initialIdStore } from '~/lib/stores/chatId';
 import { lazy, Suspense, useState } from 'react';
 import { useStore } from '@nanostores/react';
-import { useIsAdmin } from '~/lib/hooks/useDebugPrompt';
 
 // Import eagerly in dev to avoid a reload, lazily in prod for bundle size.
 const DebugAllPromptsForChat = import.meta.env.DEV
@@ -13,19 +10,11 @@ const DebugAllPromptsForChat = import.meta.env.DEV
   : lazy(() => import('../../components/DebugPromptView'));
 
 export function PromptDebugButton() {
-  // Note: isAdmin won't change to true unless the user vists /admin/prompt-debug.
-  // That lasts one week then expires.
-  const isAdmin = useQuery(api.admin.isCurrentUserAdmin);
   const [showDebugView, setShowDebugView] = useState(false);
   const chatInitialId = useStore(initialIdStore);
 
-  const [isActivelyCheckingForAdmin, setIsActivelyCheckingForAdmin] = useState(false);
-
-  (window as any).chefAssertAdmin = () => {
-    setIsActivelyCheckingForAdmin(true);
-  };
-
-  if (!isAdmin) {
+  // Only show in development mode
+  if (!import.meta.env.DEV) {
     return null;
   }
 
@@ -39,12 +28,6 @@ export function PromptDebugButton() {
           <DebugAllPromptsForChat chatInitialId={chatInitialId} onClose={() => setShowDebugView(false)} />
         </Suspense>
       )}
-      {isActivelyCheckingForAdmin && <ActivelyCheckForAdmin />}
     </>
   );
-}
-
-function ActivelyCheckForAdmin() {
-  useIsAdmin();
-  return null;
 }

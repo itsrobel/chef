@@ -1,8 +1,6 @@
 import type { AppLoadContext, EntryContext } from '@vercel/remix';
 import { RemixServer } from '@remix-run/react';
 import { isbot } from 'isbot';
-import * as Sentry from '@sentry/remix';
-import { waitUntil } from '@vercel/functions';
 import type { renderToReadableStream as RenderToReadableStream } from 'react-dom/server';
 // @ts-ignore There just aren't types for it, long-standing issue
 import { renderToReadableStream as renderToReadableStreamSSR } from 'react-dom/server.browser';
@@ -10,20 +8,6 @@ import { renderHeadToString } from 'remix-island';
 const renderToReadableStream = renderToReadableStreamSSR as typeof RenderToReadableStream;
 import { Head } from './root';
 import { themeStore } from '~/lib/stores/theme';
-
-const enableSentry =
-  globalThis.process.env.VERCEL_ENV === 'production' || globalThis.process.env.VERCEL_GIT_COMMIT_REF === 'staging';
-
-Sentry.init({
-  dsn: 'https://16615d9875b4630cfabeed5d376c4343@o1192621.ingest.us.sentry.io/4509097600811008',
-  tracesSampleRate: 1,
-  enabled: enableSentry,
-});
-
-export function handleError(error: Error, { request }: { request: Request }) {
-  Sentry.captureRemixServerException(error, 'remix.server', request);
-  waitUntil(Sentry.flush());
-}
 
 export default async function handleRequest(
   request: Request,

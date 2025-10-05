@@ -1,6 +1,5 @@
 import type { LanguageModelUsage, Message, ProviderMetadata } from 'ai';
 import { type ProviderType, type Usage, type UsageAnnotation, parseAnnotations } from '~/lib/common/annotations';
-import { captureMessage } from '@sentry/remix';
 
 export function usageFromGeneration(generation: {
   usage: LanguageModelUsage;
@@ -212,12 +211,7 @@ export function calculateChefTokens(totalUsage: Usage, provider?: ProviderType) 
     chefTokens += googleCachedContentTokens;
     breakdown.promptTokens.google.cached = googleCachedContentTokens;
   } else {
-    captureMessage('WARNING: Unknown provider. Not recording usage. Giving away for free.', {
-      level: 'error',
-      tags: {
-        provider,
-      },
-    });
+    console.error('WARNING: Unknown provider. Not recording usage. Giving away for free.', provider);
   }
 
   return {

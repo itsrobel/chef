@@ -19,7 +19,6 @@ import { selectedTeamSlugStore, setSelectedTeamSlug, useSelectedTeamSlug } from 
 import { convexProjectStore } from '~/lib/stores/convexProject';
 import { toast } from 'sonner';
 import type { PartId } from '~/lib/stores/artifacts';
-import { captureException, captureMessage } from '@sentry/remix';
 import type { ActionStatus } from '~/lib/runtime/action-runner';
 import { chatIdStore, initialIdStore } from '~/lib/stores/chatId';
 import { useConvex, useQuery } from 'convex/react';
@@ -39,7 +38,6 @@ import type { ProviderType } from '~/lib/common/annotations';
 import { setChefDebugProperty } from 'chef-agent/utils/chefDebug';
 import { MissingApiKey } from './MissingApiKey';
 import { models, type ModelProvider } from '~/components/chat/ModelSelector';
-import { useLaunchDarkly } from '~/lib/hooks/useLaunchDarkly';
 import { useLocalStorage } from '@uidotdev/usehooks';
 import { KeyIcon } from '@heroicons/react/24/outline';
 import { UsageDebugView } from '~/components/debug/UsageDebugView';
@@ -136,15 +134,13 @@ export const Chat = memo(
         }
       }
     };
-    const {
-      recordRawPromptsForDebugging,
-      maxCollapsedMessagesSize,
-      maxRelevantFilesSize,
-      minCollapsedMessagesSize,
-      useGeminiAuto,
-      enableResend,
-      useAnthropicFraction,
-    } = useLaunchDarkly();
+    const recordRawPromptsForDebugging = false;
+    const maxCollapsedMessagesSize = 128000;
+    const maxRelevantFilesSize = 32000;
+    const minCollapsedMessagesSize = 16000;
+    const useGeminiAuto = false;
+    const enableResend = false;
+    const useAnthropicFraction = 0.5;
 
     const title = useStore(description);
 
@@ -274,7 +270,7 @@ export const Chat = memo(
           }
         }
       } catch (error) {
-        captureException(error);
+        console.error(error);
       }
     }, [apiKey, convex, modelSelection, setDisableChatMessage, useGeminiAuto]);
 
@@ -381,12 +377,8 @@ export const Chat = memo(
         return result;
       },
       onError: async (e: Error) => {
-        captureMessage('Failed to process chat request: ' + e.message, {
-          level: 'error',
-          extra: {
-            error: e,
-            userHasOwnApiKey: !!apiKey,
-          },
+        console.error('Failed to process chat request: ' + e.message, e, {
+          userHasOwnApiKey: !!apiKey,
         });
 
         const retries = retryState.get();
@@ -504,7 +496,7 @@ export const Chat = memo(
           );
         }
         toast.error(message);
-        captureMessage('User tried to send message but chef is too busy');
+        console.warn('User tried to send message but chef is too busy');
         return;
       }
 

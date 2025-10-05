@@ -17,7 +17,6 @@ import type { ConvexToolSet } from 'chef-agent/types';
 import { npmInstallTool } from 'chef-agent/tools/npmInstall';
 import type { Tracer } from '~/lib/.server/chat';
 import { editTool } from 'chef-agent/tools/edit';
-import { captureException, captureMessage } from '@sentry/remix';
 import type { SystemPromptOptions } from 'chef-agent/types';
 import { cleanupAssistantMessages } from 'chef-agent/cleanupAssistantMessages';
 import { logger } from 'chef-agent/utils/logger';
@@ -476,11 +475,9 @@ async function storeDebugPrompt(
       const text = await response.text();
       const message = `Failed to store debug prompt: ${response.status} ${text}`;
       console.error(message);
-      captureMessage(message);
     }
   } catch (error) {
     console.error(error);
-    captureException(error);
   }
 }
 

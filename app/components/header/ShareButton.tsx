@@ -21,7 +21,6 @@ import type { ChangeEvent } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { ThumbnailChooser, uploadThumbnail } from '~/components/workbench/ThumbnailChooser';
 import { workbenchStore } from '~/lib/stores/workbench.client';
-import { captureException } from '@sentry/remix';
 import { useReferralCode, useReferralStats } from '~/lib/hooks/useReferralCode';
 import { selectedTeamSlugStore } from '~/lib/stores/convexTeams';
 import { useStore } from '@nanostores/react';
@@ -147,7 +146,6 @@ export function ShareButton() {
       } catch (error) {
         // This will happen a lot at first: old projects don't response to screenshot requests.
         console.error('Error uploading thumbnail:', error);
-        captureException(error);
       }
     }
     if (!open) {

@@ -18,7 +18,6 @@ import ChatAlert from './ChatAlert';
 import { Messages } from './Messages.client';
 import StreamingIndicator from './StreamingIndicator';
 import { SuggestionButtons } from './SuggestionButtons';
-import { useLaunchDarkly } from '~/lib/hooks/useLaunchDarkly';
 import { CompatibilityWarnings } from '~/components/CompatibilityWarnings.client';
 import { chooseExperience } from '~/utils/experienceChooser';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -94,13 +93,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     },
     ref,
   ) => {
-    const { maintenanceMode } = useLaunchDarkly();
+    const maintenanceMode = false;
 
     const isStreaming = streamStatus === 'streaming' || streamStatus === 'submitted';
     const recommendedExperience = chooseExperience(navigator.userAgent, window.crossOriginIsolated);
     const [chatEnabled, setChatEnabled] = useState(recommendedExperience === 'the-real-thing');
     const currentSubchatIndex = useStore(subchatIndexStore) ?? 0;
-    const { newChatFeature, minMessagesForNudge } = useLaunchDarkly();
+    const newChatFeature = true;
+    const minMessagesForNudge = 10;
     const shouldShowNudge = newChatFeature && messages.length > minMessagesForNudge;
     const createSubchat = useMutation(api.subchats.create);
     const isSubchatLoaded = useIsSubchatLoaded();

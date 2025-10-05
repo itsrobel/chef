@@ -5,7 +5,6 @@ import { workbenchStore } from '~/lib/stores/workbench.client';
 import { PortDropdown } from './PortDropdown';
 import { Spinner } from '@ui/Spinner';
 import { UpdateIcon, MobileIcon, ExternalLinkIcon, CrossCircledIcon, ImageIcon } from '@radix-ui/react-icons';
-import * as Sentry from '@sentry/remix';
 import * as Dialog from '@radix-ui/react-dialog';
 import { ThumbnailChooser } from './ThumbnailChooser';
 
@@ -85,7 +84,7 @@ export const Preview = memo(function Preview({ showClose, onClose }: { showClose
 
     setUrl('/');
     if (proxyBaseUrl.endsWith('/')) {
-      Sentry.captureMessage('proxyBaseUrl unexpectedly has a trailing slash');
+      console.warn('proxyBaseUrl unexpectedly has a trailing slash');
     }
     setIframeUrl(proxyBaseUrl + '/');
   }, [proxyBaseUrl]);
@@ -266,12 +265,12 @@ export const Preview = memo(function Preview({ showClose, onClose }: { showClose
             }}
             onKeyDown={(event) => {
               if (proxyBaseUrl === null) {
-                Sentry.captureMessage('key down event received while proxyBaseUrl is null');
+                console.warn('key down event received while proxyBaseUrl is null');
                 return;
               }
 
               if (iframeUrl === undefined) {
-                Sentry.captureMessage('key down event received while iframeUrl is undefined');
+                console.warn('key down event received while iframeUrl is undefined');
                 return;
               }
 

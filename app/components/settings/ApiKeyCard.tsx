@@ -8,7 +8,6 @@ import { Button } from '@ui/Button';
 import { TextInput } from '@ui/TextInput';
 import { Checkbox } from '@ui/Checkbox';
 import { Tooltip } from '@ui/Tooltip';
-import { captureException } from '@sentry/remix';
 import { Spinner } from '@ui/Spinner';
 import { useDebounce } from '@uidotdev/usehooks';
 
@@ -30,7 +29,7 @@ export function ApiKeyCard() {
       });
       toast.success('Preference updated.', { id: value ? 'always' : 'quotaExhausted' });
     } catch (error) {
-      captureException(error);
+      console.error(error);
       toast.error('Failed to update preference');
     }
   };
@@ -203,7 +202,7 @@ function ApiKeyItem({
           );
         }
       } catch (error) {
-        captureException(error);
+        console.error(error);
         setValidationError(`Error validating API key.`);
       }
     };
@@ -243,7 +242,7 @@ function ApiKeyItem({
           break;
       }
     } catch (error) {
-      captureException(error);
+      console.error(error);
       toast.error(`Failed to remove ${keyType} API key`);
     } finally {
       setIsSaving(false);
@@ -291,7 +290,7 @@ function ApiKeyItem({
       setNewKeyValue('');
       setValidationError(null);
     } catch (error) {
-      captureException(error);
+      console.error(error);
       toast.error(`Failed to save ${keyType} API key`);
     } finally {
       setIsSaving(false);

@@ -4,7 +4,6 @@ import { getTokenUsage } from '~/lib/convexUsage';
 import type { ProviderType, UsageAnnotation } from '~/lib/common/annotations';
 import { modelForProvider, type ModelProvider } from './llm/provider';
 import { calculateTotalBilledUsageForMessage, calculateChefTokens } from '~/lib/common/usage';
-import { captureMessage } from '@sentry/remix';
 
 const logger = createScopedLogger('usage');
 
@@ -81,13 +80,10 @@ export async function recordUsage(
   const { chefTokens } = calculateChefTokens(totalUsageBilledFor, modelProvider);
 
   if (chefTokens === 0) {
-    captureMessage('Recorded usage was 0. Something wrong with provider?', {
-      level: 'error',
-      tags: {
-        teamSlug,
-        deploymentName,
-        modelProvider,
-      },
+    console.error('Recorded usage was 0. Something wrong with provider?', {
+      teamSlug,
+      deploymentName,
+      modelProvider,
     });
   }
 

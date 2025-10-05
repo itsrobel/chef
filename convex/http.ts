@@ -196,7 +196,6 @@ http.route({
     const chatUuid = body.chatUuid;
     const storageId = await ctx.runQuery(internal.messages.getMessagesByChatInitialIdBypassingAccessControl, {
       id: chatUuid,
-      ensureAdmin: authHeader !== null,
       // TODO: Add subchatIndex that is passed in the body
       subchatIndex: 0,
     });

@@ -1,4 +1,3 @@
-import { captureMessage, captureRemixErrorBoundaryError } from '@sentry/remix';
 import { useStore } from '@nanostores/react';
 import type { LinksFunction } from '@vercel/remix';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from '@remix-run/react';
@@ -10,7 +9,6 @@ import { ConvexProvider, ConvexReactClient } from 'convex/react';
 import globalStyles from '~/styles/index.css?url';
 import '@convex-dev/design-system/styles/shared.css';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
-import posthog from 'posthog-js';
 
 import 'allotment/dist/style.css';
 
@@ -68,9 +66,7 @@ const CONVEX_URL = import.meta.env.VITE_CONVEX_URL || globalThis.process.env.CON
 if (!CONVEX_URL) {
   throw new Error(`Missing CONVEX_URL: ${CONVEX_URL}`);
 }
-const convex = new ConvexReactClient(CONVEX_URL, {
-  onServerDisconnectError: (message) => captureMessage(message),
-});
+const convex = new ConvexReactClient(CONVEX_URL);
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const theme = useStore(themeStore);
@@ -79,27 +75,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     document.querySelector('html')?.setAttribute('class', theme);
   }, [theme]);
-
-  useEffect(() => {
-    // Note that this is the 'Project API Key' from PostHog, which is
-    // write-only and PostHog says is safe to use in public apps.
-    const key = import.meta.env.VITE_POSTHOG_KEY || '';
-    const apiHost = import.meta.env.VITE_POSTHOG_HOST || '';
-
-    // See https://posthog.com/docs/libraries/js#config
-    posthog.init(key, {
-      api_host: apiHost,
-      ui_host: 'https://us.posthog.com/',
-      // Set to true to log PostHog events to the console.
-      debug: false,
-      enable_recording_console_log: false,
-      capture_pageview: true,
-      // By default, we use 'cookieless' tracking
-      // (https://posthog.com/tutorials/cookieless-tracking) and may change this
-      // later if we add a cookie banner.
-      persistence: 'memory',
-    });
-  }, []);
 
   return (
     <>
@@ -112,7 +87,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export const ErrorBoundary = () => {
   const error = useRouteError();
-  captureRemixErrorBoundaryError(error);
   return <ErrorDisplay error={error} />;
 };
 

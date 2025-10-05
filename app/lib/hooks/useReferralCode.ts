@@ -1,8 +1,33 @@
 import { useQuery as useReactQuery } from '@tanstack/react-query';
-import { useAuthToken } from './useDebugPrompt';
+import { useConvex } from 'convex/react';
+import { useEffect, useState } from 'react';
+import { getConvexAuthToken } from '~/lib/stores/sessionId';
 import { VITE_PROVISION_HOST } from '~/lib/convexProvisionHost';
 import { useSelectedTeam } from '~/lib/stores/convexTeams';
 import { queryClientStore } from '~/lib/stores/reactQueryClient';
+
+function useAuthToken() {
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const convex = useConvex();
+  useEffect(() => {
+    async function grabAuthToken() {
+      const token = getConvexAuthToken(convex);
+      if (token !== authToken) {
+        setAuthToken(token);
+      }
+    }
+    grabAuthToken();
+
+    const intervalId = setInterval(
+      () => {
+        grabAuthToken();
+      },
+      authToken ? 10 * 60 * 1000 : 100,
+    );
+    return () => clearInterval(intervalId);
+  }, [convex, authToken]);
+  return authToken;
+}
 
 export function useReferralCode() {
   const team = useSelectedTeam();

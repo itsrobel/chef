@@ -1,7 +1,6 @@
 import { internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { assertIsConvexAdmin } from "./admin";
 import type { Id } from "./_generated/dataModel";
 import { usageRecordValidator } from "./schema";
 
@@ -86,8 +85,6 @@ export const show = query({
     chatInitialId: v.string(),
   },
   handler: async (ctx, args) => {
-    await assertIsConvexAdmin(ctx);
-
     const chat = await getChatByInitialId(ctx, args.chatInitialId);
 
     const debugPrompts = await ctx.db

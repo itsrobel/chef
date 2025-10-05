@@ -5,12 +5,10 @@ import { TextInput } from '@ui/TextInput';
 import { toast } from 'sonner';
 import { EyeNoneIcon, EyeOpenIcon } from '@radix-ui/react-icons';
 import { api } from '@convex/_generated/api';
-import { captureException } from '@sentry/remix';
 import { type ModelProvider, displayModelProviderName } from './ModelSelector';
 import { KeyIcon } from '@heroicons/react/24/outline';
 import type { Doc } from '@convex/_generated/dataModel';
 import { ConfirmationDialog } from '@ui/ConfirmationDialog';
-import { useLaunchDarkly } from '~/lib/hooks/useLaunchDarkly';
 
 export interface MissingApiKeyProps {
   provider: ModelProvider;
@@ -24,7 +22,7 @@ export function MissingApiKey({ provider, requireKey, resetDisableChatMessage }:
   const [newKeyValue, setNewKeyValue] = useState('');
   const [showKey, setShowKey] = useState(false);
   const convex = useConvex();
-  const { useGeminiAuto } = useLaunchDarkly();
+  const useGeminiAuto = false;
 
   const handleSaveKey = async () => {
     try {
@@ -76,7 +74,7 @@ export function MissingApiKey({ provider, requireKey, resetDisableChatMessage }:
       setNewKeyValue('');
       resetDisableChatMessage();
     } catch (error) {
-      captureException(error as Error);
+      console.error(error as Error);
       toast.error(`Failed to save ${displayModelProviderName(provider)} API key`);
     } finally {
       setIsSaving(false);
@@ -106,7 +104,7 @@ export function MissingApiKey({ provider, requireKey, resetDisableChatMessage }:
       toast.success('Preference updated. Now using Convex tokens.');
       resetDisableChatMessage();
     } catch (error) {
-      captureException(error as Error);
+      console.error(error as Error);
       toast.error('Failed to update preference');
     } finally {
       setIsSaving(false);

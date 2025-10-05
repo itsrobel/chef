@@ -5,16 +5,14 @@ import { ToolCall } from './ToolCall';
 import { makePartId, type PartId } from 'chef-agent/partId.js';
 import { ExclamationTriangleIcon, DotFilledIcon } from '@radix-ui/react-icons';
 import { parseAnnotations, type ProviderType, type Usage, type UsageAnnotation } from '~/lib/common/annotations';
-import { useLaunchDarkly } from '~/lib/hooks/useLaunchDarkly';
 import { calculateChefTokens, usageFromGeneration, type ChefTokenBreakdown } from '~/lib/common/usage';
-import { captureMessage } from '@sentry/remix';
 
 interface AssistantMessageProps {
   message: Message;
 }
 
 export const AssistantMessage = memo(function AssistantMessage({ message }: AssistantMessageProps) {
-  const { showUsageAnnotations } = useLaunchDarkly();
+  const showUsageAnnotations = false;
   const parsedAnnotations = useMemo(() => parseAnnotations(message.annotations), [message.annotations]);
   if (!message.parts) {
     return (
@@ -92,7 +90,7 @@ function AssistantMessagePart({
     return null;
   }
 
-  captureMessage('Unknown part type ' + part.type);
+  console.warn('Unknown part type ' + part.type);
   return null;
 }
 

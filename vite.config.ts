@@ -6,7 +6,6 @@ import * as dotenv from 'dotenv';
 import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
 import wasm from 'vite-plugin-wasm';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
-import { sentryVitePlugin } from '@sentry/vite-plugin';
 
 dotenv.config();
 
@@ -45,8 +44,6 @@ export default defineConfig((config) => {
 
               // these were guesses to fix a bundling issue, must have
               // needed at least on of the not to be bundled.
-              '@sentry/remix',
-
               'vite-plugin-node-polyfills',
             ],
           }
@@ -139,14 +136,6 @@ export default defineConfig((config) => {
       tsconfigPaths(),
       config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
       wasm(),
-      sentryVitePlugin({
-        // TODO there's probably some correct environment variable name to use here instead
-        authToken: process.env.SENTRY_VITE_PLUGIN_AUTH_TOKEN,
-        org: 'convex-dev',
-        project: '4509097600811008',
-        // Only upload source maps for production
-        disable: process.env.VERCEL_ENV !== 'production',
-      }),
     ],
     envPrefix: ['VITE_'],
     css: {

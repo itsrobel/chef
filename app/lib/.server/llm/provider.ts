@@ -6,7 +6,6 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createVertex } from '@ai-sdk/google-vertex';
 import { createOpenAI } from '@ai-sdk/openai';
 import { awsCredentialsProvider } from '@vercel/functions/oidc';
-import { captureException } from '@sentry/remix';
 import { logger } from 'chef-agent/utils/logger';
 import type { ProviderType } from '~/lib/common/annotations';
 import { getEnv } from '~/lib/.server/env';
@@ -165,13 +164,6 @@ export function getProvider(
               return response;
             }
             const text = await response.text();
-            captureException('Anthropic returned an error', {
-              level: 'error',
-              extra: {
-                response,
-                text,
-              },
-            });
             logger.error(
               `Anthropic${isLowQos ? ' (low QoS)' : ''} returned an error (${response.status} ${response.statusText}): ${text}`,
             );
@@ -186,18 +178,11 @@ export function getProvider(
 
           const lowQosKey = getEnv('ANTHROPIC_LOW_QOS_API_KEY');
           if (!lowQosKey) {
-            captureException('Anthropic low qos api key not set', { level: 'error' });
             console.error('Anthropic low qos api key not set');
             return throwIfBad(response, false);
           }
 
           logger.error(`Falling back to low QoS API key...`);
-          captureException('Rate limited by Anthropic, switching to low QoS API key', {
-            level: 'warning',
-            extra: {
-              response,
-            },
-          });
           if (init && init.headers) {
             const headers = new Headers(init.headers);
             headers.set('x-api-key', lowQosKey);

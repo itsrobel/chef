@@ -54,16 +54,6 @@ export default defineSchema({
     .index("byConvexMemberId", ["convexMemberId", "softDeletedForWorkOSMerge"]),
 
   /*
-   * Admin status means being on the convex team on the provision host.
-   * It doesn't work when using a local big brain (provision host).
-   */
-  convexAdmins: defineTable({
-    convexMemberId: v.id("convexMembers"), // should be unique
-    lastCheckedForAdminStatus: v.number(),
-    wasAdmin: v.boolean(),
-  }).index("byConvexMemberId", ["convexMemberId"]),
-
-  /*
    * All chats have two IDs -- an `initialId` that is always set (UUID) and a `urlId`
    * that is more human friendly (e.g. "tic-tac-toe").
    * The `urlId` is set based on the LLM messages so is initially unset.

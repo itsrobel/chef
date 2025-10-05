@@ -7,21 +7,15 @@ import { ChatDescription } from '~/components/header/ChatDescription.client';
 import { DeployButton } from './DeployButton';
 import { ShareButton } from './ShareButton';
 import { useConvexSessionIdOrNullOrLoading } from '~/lib/stores/sessionId';
-import { HamburgerMenuIcon, PersonIcon, GearIcon, ExitIcon } from '@radix-ui/react-icons';
+import { HamburgerMenuIcon } from '@radix-ui/react-icons';
 import { DownloadButton } from './DownloadButton';
 import { LoggedOutHeaderButtons } from './LoggedOutHeaderButtons';
-import { profileStore, setProfile } from '~/lib/stores/profile';
-import { Menu as MenuComponent, MenuItem as MenuItemComponent } from '@ui/Menu';
-import { SESSION_ID_KEY } from '~/components/chat/ChefAuthWrapper';
-import { FeedbackButton } from './FeedbackButton';
-import { DiscordButton } from './DiscordButton';
 import { PromptDebugButton } from './PromptDebugButton';
 import { ReferButton } from './ReferButton';
 import { useSelectedTeamSlug } from '~/lib/stores/convexTeams';
 import { useUsage } from '~/lib/stores/usage';
 import { useReferralStats } from '~/lib/hooks/useReferralCode';
 import { Menu } from '~/components/sidebar/Menu.client';
-import { useAuth } from '@workos-inc/authkit-react';
 
 export function Header({ hideSidebarIcon = false }: { hideSidebarIcon?: boolean }) {
   const chat = useStore(chatStore);
@@ -31,22 +25,9 @@ export function Header({ hideSidebarIcon = false }: { hideSidebarIcon?: boolean 
   const isLoggedIn = sessionId !== null;
   const showSidebarIcon = !hideSidebarIcon && isLoggedIn;
 
-  const profile = useStore(profileStore);
-  const { signOut } = useAuth();
-
   const teamSlug = useSelectedTeamSlug();
   const { isPaidPlan } = useUsage({ teamSlug });
   const referralStats = useReferralStats();
-
-  const handleLogout = () => {
-    setProfile(null);
-    window.localStorage.removeItem(SESSION_ID_KEY);
-    signOut({ returnTo: window.location.origin });
-  };
-
-  const handleSettingsClick = () => {
-    window.location.pathname = '/settings';
-  };
 
   return (
     <header className={'flex h-[var(--header-height)] items-center overflow-x-auto overflow-y-hidden border-b p-5'}>
@@ -102,39 +83,6 @@ export function Header({ hideSidebarIcon = false }: { hideSidebarIcon?: boolean 
                     <HeaderActionButtons />
                   </div>
                 </>
-              )}
-              {profile && (
-                <MenuComponent
-                  placement="top-start"
-                  buttonProps={{
-                    variant: 'neutral',
-                    title: 'User menu',
-                    inline: true,
-                    className: 'rounded-full',
-                    icon: profile.avatar ? (
-                      <img
-                        src={profile.avatar}
-                        className="size-8 min-w-8 rounded-full object-cover"
-                        loading="eager"
-                        decoding="sync"
-                      />
-                    ) : (
-                      <PersonIcon className="size-8 min-w-8 rounded-full border text-content-secondary" />
-                    ),
-                  }}
-                >
-                  <FeedbackButton showInMenu={true} />
-                  <DiscordButton showInMenu={true} />
-                  <hr />
-                  <MenuItemComponent action={handleSettingsClick}>
-                    <GearIcon className="text-content-secondary" />
-                    Settings & Usage
-                  </MenuItemComponent>
-                  <MenuItemComponent action={handleLogout}>
-                    <ExitIcon className="text-content-secondary" />
-                    Log out
-                  </MenuItemComponent>
-                </MenuComponent>
               )}
             </div>
           )}

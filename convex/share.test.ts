@@ -3,7 +3,6 @@ import { api, internal } from "./_generated/api";
 import {
   createChat,
   setupTest,
-  testProjectInitParams,
   type TestConvex,
   storeChat,
   verifyStoredContent,
@@ -138,7 +137,6 @@ describe("share", () => {
     const { id: clonedChatId } = await t.mutation(api.share.clone, {
       sessionId,
       shareCode: code,
-      projectInitParams: testProjectInitParams,
     });
     expect(clonedChatId).toBeDefined();
 
@@ -208,7 +206,6 @@ describe("share", () => {
     const { id: clonedChatId } = await t.mutation(api.share.clone, {
       sessionId,
       shareCode: code,
-      projectInitParams: testProjectInitParams,
     });
     expect(clonedChatId).toBeDefined();
 
@@ -292,7 +289,6 @@ describe("share", () => {
       return await cloneShow(ctx, {
         showCode: code,
         sessionId,
-        projectInitParams: testProjectInitParams,
       });
     });
     expect(clonedChatId).toBeDefined();
@@ -585,7 +581,6 @@ describe("share", () => {
     const { id: clonedChatId } = await t.mutation(api.share.clone, {
       sessionId,
       shareCode: code,
-      projectInitParams: testProjectInitParams,
     });
     expect(clonedChatId).toBeDefined();
 

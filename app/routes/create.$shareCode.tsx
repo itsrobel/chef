@@ -1,7 +1,7 @@
-import { getConvexAuthToken, waitForConvexSessionId } from '~/lib/stores/sessionId';
+import { waitForConvexSessionId } from '~/lib/stores/sessionId';
 import { json } from '@vercel/remix';
 import type { LoaderFunctionArgs } from '@vercel/remix';
-import { useMutation, useConvex, useQuery } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { api } from '@convex/_generated/api';
 import { useCallback } from 'react';
 import { toast } from 'sonner';
@@ -16,7 +16,7 @@ import type { MetaFunction } from '@vercel/remix';
 import { Button } from '@ui/Button';
 import { ConvexError } from 'convex/values';
 import { Sheet } from '@ui/Sheet';
-import { useAuth } from '@workos-inc/authkit-react';
+
 export const meta: MetaFunction = () => {
   return [
     { title: 'Cooked with Chef' },
@@ -53,7 +53,6 @@ export default function ShareProject() {
 }
 
 function ShareProjectContent() {
-  const { signIn } = useAuth();
   const { shareCode } = useParams();
 
   if (!shareCode) {
@@ -64,24 +63,14 @@ function ShareProjectContent() {
   const chefAuthState = useChefAuth();
 
   const cloneChat = useMutation(api.share.clone);
-  const convex = useConvex();
   const getShareDescription = useQuery(api.share.getShareDescription, { code: shareCode });
 
   const handleCloneChat = useCallback(async () => {
     const sessionId = await waitForConvexSessionId('useInitializeChat');
-    const teamSlug = await waitForSelectedTeamSlug('useInitializeChat');
-    const workosAccessToken = getConvexAuthToken(convex);
-    if (!workosAccessToken) {
-      console.error('No WorkOS access token');
-      toast.error('Unexpected error cloning chat');
-      return;
-    }
-    const projectInitParams = {
-      teamSlug,
-      workosAccessToken,
-    };
+    await waitForSelectedTeamSlug('useInitializeChat');
+
     try {
-      const { id: chatId } = await cloneChat({ shareCode, sessionId, projectInitParams });
+      const { id: chatId } = await cloneChat({ shareCode, sessionId });
       window.location.href = `/chat/${chatId}`;
     } catch (e) {
       if (e instanceof ConvexError) {
@@ -90,7 +79,7 @@ function ShareProjectContent() {
         toast.error('Unexpected error cloning chat');
       }
     }
-  }, [convex, cloneChat, shareCode]);
+  }, [cloneChat, shareCode]);
 
   const selectedTeamSlug = useSelectedTeamSlug();
 
@@ -99,33 +88,7 @@ function ShareProjectContent() {
   }
 
   if (chefAuthState.kind !== 'fullyLoggedIn') {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center p-4">
-        <div className="w-full max-w-md space-y-6 rounded-xl border bg-white p-8">
-          <div className="space-y-2 text-center">
-            <h1 className="text-center text-3xl font-bold">Sign in to Chef</h1>
-            <p className="text-base text-gray-500">
-              Please sign in to Chef to clone this project
-              {getShareDescription?.description ? (
-                <>
-                  : <span className="font-bold">{getShareDescription.description}</span>
-                </>
-              ) : (
-                ''
-              )}
-            </p>
-          </div>
-
-          <Button
-            onClick={() => {
-              signIn();
-            }}
-          >
-            Sign in
-          </Button>
-        </div>
-      </div>
-    );
+    return <Loading />;
   }
 
   return (

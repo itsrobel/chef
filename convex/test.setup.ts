@@ -24,20 +24,14 @@ export function setupTest() {
 }
 
 export async function createChat(t: TestConvex) {
-  const sessionId = await t.mutation(api.sessions.startSession);
+  const sessionId = await t.mutation(api.sessions.startAnonymousSession);
   const chatId = "test";
   await t.mutation(api.messages.initializeChat, {
     id: chatId,
     sessionId,
-    projectInitParams: testProjectInitParams,
   });
   return { sessionId, chatId };
 }
-
-export const testProjectInitParams = {
-  teamSlug: "test",
-  workosAccessToken: "test",
-};
 
 export async function storeChat(
   t: TestConvex,

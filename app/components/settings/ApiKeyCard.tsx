@@ -10,15 +10,18 @@ import { Checkbox } from '@ui/Checkbox';
 import { Tooltip } from '@ui/Tooltip';
 import { Spinner } from '@ui/Spinner';
 import { useDebounce } from '@uidotdev/usehooks';
+import { useConvexSessionId } from '~/lib/stores/sessionId';
 
 export function ApiKeyCard() {
   const convex = useConvex();
+  const sessionId = useConvexSessionId();
 
-  const apiKey = useQuery(api.apiKeys.apiKeyForCurrentMember);
+  const apiKey = useQuery(api.apiKeys.apiKeyForCurrentMember, { sessionId });
 
   const handleAlwaysUseKeyChange = async (value: boolean) => {
     try {
       await convex.mutation(api.apiKeys.setApiKeyForCurrentMember, {
+        sessionId,
         apiKey: {
           preference: value ? 'always' : 'quotaExhausted',
           value: apiKey?.value,
@@ -38,24 +41,28 @@ export function ApiKeyCard() {
 
   const validateAnthropicApiKey = async (apiKey: string) => {
     return await convex.action(api.apiKeys.validateAnthropicApiKey, {
+      sessionId,
       apiKey,
     });
   };
 
   const validateOpenaiApiKey = async (apiKey: string) => {
     return await convex.action(api.apiKeys.validateOpenaiApiKey, {
+      sessionId,
       apiKey,
     });
   };
 
   const validateGoogleApiKey = async (apiKey: string) => {
     return await convex.action(api.apiKeys.validateGoogleApiKey, {
+      sessionId,
       apiKey,
     });
   };
 
   const validateXaiApiKey = async (apiKey: string) => {
     return await convex.action(api.apiKeys.validateXaiApiKey, {
+      sessionId,
       apiKey,
     });
   };
@@ -173,6 +180,7 @@ function ApiKeyItem({
   onValidate: (key: string) => Promise<boolean>;
 }) {
   const convex = useConvex();
+  const sessionId = useConvexSessionId();
   const [showKey, setShowKey] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -225,19 +233,19 @@ function ApiKeyItem({
 
       switch (keyType) {
         case 'anthropic':
-          await convex.mutation(api.apiKeys.deleteAnthropicApiKeyForCurrentMember);
+          await convex.mutation(api.apiKeys.deleteAnthropicApiKeyForCurrentMember, { sessionId });
           toast.success('Anthropic API key removed', { id: 'anthropic-removed' });
           break;
         case 'google':
-          await convex.mutation(api.apiKeys.deleteGoogleApiKeyForCurrentMember);
+          await convex.mutation(api.apiKeys.deleteGoogleApiKeyForCurrentMember, { sessionId });
           toast.success('Google API key removed', { id: 'google-removed' });
           break;
         case 'openai':
-          await convex.mutation(api.apiKeys.deleteOpenaiApiKeyForCurrentMember);
+          await convex.mutation(api.apiKeys.deleteOpenaiApiKeyForCurrentMember, { sessionId });
           toast.success('OpenAI API key removed', { id: 'openai-removed' });
           break;
         case 'xai':
-          await convex.mutation(api.apiKeys.deleteXaiApiKeyForCurrentMember);
+          await convex.mutation(api.apiKeys.deleteXaiApiKeyForCurrentMember, { sessionId });
           toast.success('xAI API key removed', { id: 'xai-removed' });
           break;
       }
@@ -256,7 +264,7 @@ function ApiKeyItem({
       setIsSaving(true);
 
       // Get the current API key data
-      const apiKey = await convex.query(api.apiKeys.apiKeyForCurrentMember);
+      const apiKey = await convex.query(api.apiKeys.apiKeyForCurrentMember, { sessionId });
 
       const apiKeyMutation = {
         preference: apiKey?.preference || ('quotaExhausted' as 'always' | 'quotaExhausted'),
@@ -282,6 +290,7 @@ function ApiKeyItem({
       }
 
       await convex.mutation(api.apiKeys.setApiKeyForCurrentMember, {
+        sessionId,
         apiKey: apiKeyMutation,
       });
 

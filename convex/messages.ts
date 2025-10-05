@@ -12,7 +12,6 @@ import { ConvexError, v } from "convex/values";
 import type { Infer } from "convex/values";
 import { isValidSession } from "./sessions";
 import type { Doc, Id } from "./_generated/dataModel";
-import { ensureEnvVar, startProvisionConvexProjectHelper } from "./convexProjects";
 import { internal } from "./_generated/api";
 
 export type SerializedMessage = Omit<AIMessage, "createdAt" | "content"> & {
@@ -26,16 +25,10 @@ export const initializeChat = mutation({
   args: {
     sessionId: v.id("sessions"),
     id: v.string(),
-    projectInitParams: v.optional(
-      v.object({
-        teamSlug: v.string(),
-        workosAccessToken: v.string(),
-      }),
-    ),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const { id, sessionId, projectInitParams } = args;
+    const { id, sessionId } = args;
     let existing = await getChatByIdOrUrlIdEnsuringAccess(ctx, { id: args.id, sessionId: args.sessionId });
 
     if (existing) {
@@ -45,7 +38,6 @@ export const initializeChat = mutation({
     await createNewChat(ctx, {
       id,
       sessionId,
-      projectInitParams,
     });
   },
 });
@@ -587,83 +579,18 @@ export const remove = action({
   args: {
     sessionId: v.id("sessions"),
     id: v.string(),
-    teamSlug: v.optional(v.string()),
-    projectSlug: v.optional(v.string()),
-    shouldDeleteConvexProject: v.boolean(),
-    accessToken: v.string(),
   },
   handler: async (ctx, args) => {
-    const { accessToken, id, sessionId, teamSlug, projectSlug, shouldDeleteConvexProject } = args;
-    let projectDeletionResult: { kind: "success" } | { kind: "error"; error: string } = { kind: "success" };
-    if (shouldDeleteConvexProject) {
-      projectDeletionResult = await tryDeleteProject({ teamSlug, projectSlug, accessToken });
-    }
+    const { id, sessionId } = args;
 
     await ctx.runMutation(internal.messages.removeChat, {
       id,
       sessionId,
     });
 
-    if (projectDeletionResult.kind === "error") {
-      return {
-        kind: "error",
-        error: `Deleted chat, but failed to delete linked Convex project:\n${projectDeletionResult.error}`,
-      };
-    }
     return { kind: "success" };
   },
 });
-
-async function tryDeleteProject(args: {
-  teamSlug: string | undefined;
-  projectSlug: string | undefined;
-  accessToken: string;
-}): Promise<{ kind: "success" } | { kind: "error"; error: string }> {
-  const { teamSlug, projectSlug, accessToken } = args;
-  if (teamSlug === undefined || projectSlug === undefined) {
-    return { kind: "error", error: "Team slug and project slug are required to delete a Convex project" };
-  }
-
-  const bigBrainHost = ensureEnvVar("BIG_BRAIN_HOST");
-
-  const projectsResponse = await fetch(`${bigBrainHost}/api/teams/${teamSlug}/projects`, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
-
-  if (!projectsResponse.ok) {
-    const text = await projectsResponse.text();
-    try {
-      const error = JSON.parse(text);
-      if (error.code === "TeamNotFound") {
-        return { kind: "error", error: `Team not found: ${teamSlug}` };
-      }
-      return { kind: "error", error: `Failed to fetch team projects: ${projectsResponse.statusText} ${text}` };
-    } catch (_e) {
-      return { kind: "error", error: `Failed to fetch team projects: ${projectsResponse.statusText} ${text}` };
-    }
-  }
-
-  const projects = await projectsResponse.json();
-  const project = projects.find((p: any) => p.slug === projectSlug);
-
-  if (project) {
-    const response = await fetch(`${bigBrainHost}/api/dashboard/delete_project/${project.id}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      return { kind: "error", error: `Failed to delete project: ${response.statusText} ${text}` };
-    }
-  }
-
-  return { kind: "success" };
-}
 
 export const removeChat = internalMutation({
   args: {
@@ -677,18 +604,6 @@ export const removeChat = internalMutation({
       return;
     }
 
-    const convexProject = existing.convexProject;
-    if (convexProject !== undefined && convexProject.kind === "connected") {
-      const credentials = await ctx.db
-        .query("convexProjectCredentials")
-        .withIndex("bySlugs", (q) =>
-          q.eq("teamSlug", convexProject.teamSlug).eq("projectSlug", convexProject.projectSlug),
-        )
-        .unique();
-      if (credentials !== null) {
-        await ctx.db.delete(credentials._id);
-      }
-    }
     await ctx.db.patch(existing._id, {
       isDeleted: true,
     });
@@ -722,13 +637,9 @@ export async function createNewChat(
   args: {
     id: string;
     sessionId: Id<"sessions">;
-    projectInitParams?: {
-      teamSlug: string;
-      workosAccessToken: string;
-    };
   },
 ): Promise<Id<"chats">> {
-  const { id, sessionId, projectInitParams } = args;
+  const { id, sessionId } = args;
   const existing = await getChatByIdOrUrlIdEnsuringAccess(ctx, { id, sessionId });
 
   if (existing) {
@@ -753,12 +664,6 @@ export async function createNewChat(
     lastMessageRank: -1,
     subchatIndex: 0,
     partIndex: -1,
-  });
-
-  await startProvisionConvexProjectHelper(ctx, {
-    sessionId,
-    chatId: id,
-    projectInitParams,
   });
 
   return chatId;

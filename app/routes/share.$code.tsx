@@ -14,11 +14,10 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
 
   const share = preloadedQueryResult(data.shareQuery as Preloaded<typeof api.socialShare.getSocialShare>);
 
-  const { description, thumbnailUrl, author } = share;
-  const authorText = author ? `by ${author.username}` : '';
-  const title = description ? `${description} ${authorText} | Chef` : `Shared Project ${authorText} | Chef`;
+  const { description, thumbnailUrl } = share;
+  const title = description ? `${description} | Chef` : 'Shared Project | Chef';
   const ogTitle = description || 'Shared Project';
-  const ogDesc = `Cooked with Chef ${authorText}`;
+  const ogDesc = 'Cooked with Chef';
 
   return [
     { title },
@@ -38,7 +37,6 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
     },
     { property: 'twitter:title', content: ogTitle },
     { property: 'twitter:description', content: ogDesc },
-    ...(author ? [{ property: 'twitter:creator', content: `@${author.username}` }] : []),
   ];
 };
 

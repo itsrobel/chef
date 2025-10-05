@@ -18,6 +18,7 @@ import { hasApiKeySet } from '~/lib/common/apiKey';
 import type { ModelSelection } from '~/utils/constants';
 import { useQuery } from 'convex/react';
 import { api } from '@convex/_generated/api';
+import { useConvexSessionId } from '~/lib/stores/sessionId';
 
 type StreamStatus = 'streaming' | 'submitted' | 'ready' | 'error';
 
@@ -252,7 +253,8 @@ function LittleUsage({
   const referralCode = useReferralCode();
   const loading = isLoadingUsage || !referralStats || !referralCode || !teamSlug;
   const useGeminiAuto = false;
-  const apiKey = useQuery(api.apiKeys.apiKeyForCurrentMember);
+  const sessionId = useConvexSessionId();
+  const apiKey = useQuery(api.apiKeys.apiKeyForCurrentMember, { sessionId });
 
   useEffect(() => {
     if (streamStatus === 'ready') {

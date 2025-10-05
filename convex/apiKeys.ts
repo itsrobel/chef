@@ -1,182 +1,171 @@
 import { ConvexError, v } from "convex/values";
 import { action, mutation, query } from "./_generated/server";
 import { apiKeyValidator } from "./schema";
-import { getMemberByConvexMemberIdQuery } from "./sessions";
 
 export const apiKeyForCurrentMember = query({
-  args: {},
+  args: {
+    sessionId: v.id("sessions"),
+  },
   returns: v.union(v.null(), apiKeyValidator),
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
+  handler: async (ctx, args) => {
+    const session = await ctx.db.get(args.sessionId);
+    if (!session) {
       return null;
     }
-    const existingMember = await getMemberByConvexMemberIdQuery(ctx, identity).first();
-
-    return existingMember?.apiKey;
+    return session.apiKey ?? null;
   },
 });
 
 export const setApiKeyForCurrentMember = mutation({
   args: {
+    sessionId: v.id("sessions"),
     apiKey: apiKeyValidator,
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError({ code: "NotAuthorized", message: "Unauthorized" });
+    const session = await ctx.db.get(args.sessionId);
+
+    if (!session) {
+      throw new ConvexError({ code: "NotFound", message: "Session not found" });
     }
 
-    const existingMember = await getMemberByConvexMemberIdQuery(ctx, identity).first();
-
-    if (!existingMember) {
-      throw new ConvexError({ code: "NotAuthorized", message: "Unauthorized" });
-    }
-
-    await ctx.db.patch(existingMember._id, { apiKey: args.apiKey });
+    await ctx.db.patch(args.sessionId, { apiKey: args.apiKey });
+    return null;
   },
 });
 
 export const deleteApiKeyForCurrentMember = mutation({
-  args: {},
+  args: {
+    sessionId: v.id("sessions"),
+  },
   returns: v.null(),
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError({ code: "NotAuthorized", message: "Unauthorized" });
+  handler: async (ctx, args) => {
+    const session = await ctx.db.get(args.sessionId);
+
+    if (!session) {
+      throw new ConvexError({ code: "NotFound", message: "Session not found" });
     }
 
-    const existingMember = await getMemberByConvexMemberIdQuery(ctx, identity).first();
-
-    if (!existingMember) {
-      throw new ConvexError({ code: "NotAuthorized", message: "Unauthorized" });
-    }
-
-    await ctx.db.patch(existingMember._id, { apiKey: undefined });
+    await ctx.db.patch(args.sessionId, { apiKey: undefined });
+    return null;
   },
 });
 
 export const deleteAnthropicApiKeyForCurrentMember = mutation({
-  args: {},
+  args: {
+    sessionId: v.id("sessions"),
+  },
   returns: v.null(),
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError({ code: "NotAuthorized", message: "Unauthorized" });
-    }
+  handler: async (ctx, args) => {
+    const session = await ctx.db.get(args.sessionId);
 
-    const existingMember = await getMemberByConvexMemberIdQuery(ctx, identity).first();
-
-    if (!existingMember) {
-      throw new ConvexError({ code: "NotAuthorized", message: "Unauthorized" });
+    if (!session) {
+      throw new ConvexError({ code: "NotFound", message: "Session not found" });
     }
-    if (!existingMember.apiKey) {
-      return;
+    if (!session.apiKey) {
+      return null;
     }
-    await ctx.db.patch(existingMember._id, {
+    await ctx.db.patch(args.sessionId, {
       apiKey: {
-        ...existingMember.apiKey,
+        ...session.apiKey,
         value: undefined,
       },
     });
+    return null;
   },
 });
 
 export const deleteOpenaiApiKeyForCurrentMember = mutation({
-  args: {},
+  args: {
+    sessionId: v.id("sessions"),
+  },
   returns: v.null(),
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError({ code: "NotAuthorized", message: "Unauthorized" });
-    }
+  handler: async (ctx, args) => {
+    const session = await ctx.db.get(args.sessionId);
 
-    const existingMember = await getMemberByConvexMemberIdQuery(ctx, identity).first();
-
-    if (!existingMember) {
-      throw new ConvexError({ code: "NotAuthorized", message: "Unauthorized" });
+    if (!session) {
+      throw new ConvexError({ code: "NotFound", message: "Session not found" });
     }
-    if (!existingMember.apiKey) {
-      return;
+    if (!session.apiKey) {
+      return null;
     }
-    await ctx.db.patch(existingMember._id, {
+    await ctx.db.patch(args.sessionId, {
       apiKey: {
-        ...existingMember.apiKey,
+        ...session.apiKey,
         openai: undefined,
       },
     });
+    return null;
   },
 });
 
 export const deleteXaiApiKeyForCurrentMember = mutation({
-  args: {},
+  args: {
+    sessionId: v.id("sessions"),
+  },
   returns: v.null(),
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError({ code: "NotAuthorized", message: "Unauthorized" });
-    }
+  handler: async (ctx, args) => {
+    const session = await ctx.db.get(args.sessionId);
 
-    const existingMember = await getMemberByConvexMemberIdQuery(ctx, identity).first();
-
-    if (!existingMember) {
-      throw new ConvexError({ code: "NotAuthorized", message: "Unauthorized" });
+    if (!session) {
+      throw new ConvexError({ code: "NotFound", message: "Session not found" });
     }
-    if (!existingMember.apiKey) {
-      return;
+    if (!session.apiKey) {
+      return null;
     }
-    await ctx.db.patch(existingMember._id, {
+    await ctx.db.patch(args.sessionId, {
       apiKey: {
-        ...existingMember.apiKey,
+        ...session.apiKey,
         xai: undefined,
       },
     });
+    return null;
   },
 });
 
 export const deleteGoogleApiKeyForCurrentMember = mutation({
-  args: {},
+  args: {
+    sessionId: v.id("sessions"),
+  },
   returns: v.null(),
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError({ code: "NotAuthorized", message: "Unauthorized" });
-    }
+  handler: async (ctx, args) => {
+    const session = await ctx.db.get(args.sessionId);
 
-    const existingMember = await getMemberByConvexMemberIdQuery(ctx, identity).first();
-
-    if (!existingMember) {
-      throw new ConvexError({ code: "NotAuthorized", message: "Unauthorized" });
+    if (!session) {
+      throw new ConvexError({ code: "NotFound", message: "Session not found" });
     }
-    if (!existingMember.apiKey) {
-      return;
+    if (!session.apiKey) {
+      return null;
     }
-    await ctx.db.patch(existingMember._id, {
+    await ctx.db.patch(args.sessionId, {
       apiKey: {
-        ...existingMember.apiKey,
+        ...session.apiKey,
         google: undefined,
       },
     });
+    return null;
   },
 });
 
 export const validateAnthropicApiKey = action({
   args: {
+    sessionId: v.id("sessions"),
     apiKey: v.string(),
   },
+  returns: v.boolean(),
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError({ code: "NotAuthorized", message: "Unauthorized" });
-    }
-
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-api-key": args.apiKey,
+        "anthropic-version": "2023-06-01",
       },
+      body: JSON.stringify({
+        model: "claude-3-5-sonnet-20241022",
+        max_tokens: 1,
+        messages: [{ role: "user", content: "test" }],
+      }),
     });
 
     if (response.status === 401) {
@@ -188,18 +177,13 @@ export const validateAnthropicApiKey = action({
 
 export const validateOpenaiApiKey = action({
   args: {
+    sessionId: v.id("sessions"),
     apiKey: v.string(),
   },
+  returns: v.boolean(),
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError({ code: "NotAuthorized", message: "Unauthorized" });
-    }
-
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
+    const response = await fetch("https://api.openai.com/v1/models", {
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${args.apiKey}`,
       },
     });
@@ -213,14 +197,11 @@ export const validateOpenaiApiKey = action({
 
 export const validateGoogleApiKey = action({
   args: {
+    sessionId: v.id("sessions"),
     apiKey: v.string(),
   },
+  returns: v.boolean(),
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError({ code: "NotAuthorized", message: "Unauthorized" });
-    }
-
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${args.apiKey}`);
 
     if (response.status === 400) {
@@ -232,21 +213,17 @@ export const validateGoogleApiKey = action({
 
 export const validateXaiApiKey = action({
   args: {
+    sessionId: v.id("sessions"),
     apiKey: v.string(),
   },
+  returns: v.boolean(),
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError({ code: "NotAuthorized", message: "Unauthorized" });
-    }
-
     const response = await fetch("https://api.x.ai/v1/models", {
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${args.apiKey}`,
       },
     });
-    if (response.status === 400) {
+    if (response.status === 401) {
       return false;
     }
     return true;

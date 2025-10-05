@@ -1,6 +1,5 @@
 import { Migrations } from "@convex-dev/migrations";
 import { components, internal } from "./_generated/api.js";
-import type { Doc } from "./_generated/dataModel.js";
 
 export const migrations = new Migrations(components.migrations);
 export const run = migrations.runner();
@@ -62,12 +61,11 @@ export const runAddSubchatIndexToDebugChatApiRequestLog = migrations.runner(
   internal.migrations.addSubchatIndexToDebugChatApiRequestLog,
 );
 
+// Migration disabled - convexMembers table removed
 export const addConvexMemberIdToConvexMembers = migrations.define({
-  table: "convexMembers",
-  migrateOne: async (ctx, doc) => {
-    if (doc.convexMemberId === undefined && doc.cachedProfile !== undefined) {
-      await ctx.db.patch(doc._id, { convexMemberId: (doc as Doc<"convexMembers">).cachedProfile?.id });
-    }
+  table: "sessions",
+  migrateOne: async (_ctx, _doc) => {
+    // No-op migration - convexMembers table removed
   },
 });
 

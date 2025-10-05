@@ -4,7 +4,7 @@ import { type ModelSelection } from '~/utils/constants';
 export function hasApiKeySet(
   modelSelection: ModelSelection,
   useGeminiAuto: boolean,
-  apiKey?: Doc<'convexMembers'>['apiKey'] | null,
+  apiKey?: Doc<'sessions'>['apiKey'] | null,
 ) {
   if (!apiKey) {
     return false;
@@ -35,7 +35,7 @@ export function hasApiKeySet(
   }
 }
 
-export function hasAnyApiKeySet(apiKey?: Doc<'convexMembers'>['apiKey'] | null) {
+export function hasAnyApiKeySet(apiKey?: Doc<'sessions'>['apiKey'] | null) {
   if (!apiKey) {
     return false;
   }

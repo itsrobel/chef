@@ -148,7 +148,10 @@ export const Chat = memo(
 
     const [animationScope, animate] = useAnimate();
 
-    const apiKey = useQuery(api.apiKeys.apiKeyForCurrentMember);
+    const apiKey = useQuery(
+      api.apiKeys.apiKeyForCurrentMember,
+      sessionId && typeof sessionId === 'string' ? { sessionId } : 'skip',
+    );
 
     const [modelSelection, setModelSelection] = useLocalStorage<ModelSelection>('modelSelection', 'auto');
     const terminalInitializationOptions = useMemo(

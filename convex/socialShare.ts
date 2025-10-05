@@ -106,19 +106,13 @@ async function getSocialShareInner(ctx: QueryCtx, code: string) {
     throw new ConvexError("Invalid chat");
   }
 
-  const session = await ctx.db.get(chat.creatorId);
-  const authorProfile = session?.memberId ? ((await ctx.db.get(session.memberId))?.cachedProfile ?? null) : null;
-
   const chatHasBeenDeployed = !!chat.hasBeenDeployed;
 
   const thumbnailUrl = socialShare.thumbnailImageStorageId
     ? await ctx.storage.getUrl(socialShare.thumbnailImageStorageId)
     : null;
 
-  const deployedUrl =
-    chatHasBeenDeployed && chat.convexProject?.kind === "connected"
-      ? `https://${chat.convexProject.deploymentName}.convex.app`
-      : null;
+  const deployedUrl = null;
 
   return {
     description: chat.description || null,
@@ -129,12 +123,7 @@ async function getSocialShareInner(ctx: QueryCtx, code: string) {
     deployedUrl,
     thumbnailUrl,
     referralCode: socialShare.referralCode || null,
-    author: authorProfile
-      ? {
-          username: authorProfile.username,
-          avatar: authorProfile.avatar,
-        }
-      : null,
+    author: null,
   };
 }
 

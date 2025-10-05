@@ -7,6 +7,7 @@ import { HandThumbUpIcon, KeyIcon } from '@heroicons/react/24/outline';
 import { useQuery } from 'convex/react';
 import { api } from '@convex/_generated/api';
 import type { Doc } from '@convex/_generated/dataModel';
+import { useConvexSessionId } from '~/lib/stores/sessionId';
 export type ModelProvider = 'openai' | 'google' | 'xai' | 'anthropic' | 'auto';
 
 export function displayModelProviderName(provider: ModelProvider) {
@@ -119,7 +120,8 @@ export const ModelSelector = React.memo(function ModelSelector({
   setModelSelection,
   size = 'md',
 }: ModelSelectorProps) {
-  const apiKey = useQuery(api.apiKeys.apiKeyForCurrentMember);
+  const sessionId = useConvexSessionId();
+  const apiKey = useQuery(api.apiKeys.apiKeyForCurrentMember, { sessionId });
   const selectedModel = models[modelSelection];
   const useGeminiAuto = false;
   const enableGpt5 = false;
@@ -197,7 +199,7 @@ export const ModelSelector = React.memo(function ModelSelector({
   );
 });
 
-const keyForProvider = (apiKeys: Doc<'convexMembers'>['apiKey'], provider: ModelProvider, useGeminiAuto: boolean) => {
+const keyForProvider = (apiKeys: Doc<'sessions'>['apiKey'], provider: ModelProvider, useGeminiAuto: boolean) => {
   if (provider === 'anthropic') {
     return apiKeys?.value;
   }

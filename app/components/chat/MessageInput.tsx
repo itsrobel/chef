@@ -16,7 +16,6 @@ import React, {
 } from 'react';
 import { useSearchParams } from '@remix-run/react';
 import { classNames } from '~/utils/classNames';
-import { ConvexConnection } from '~/components/convex/ConvexConnection';
 import { PROMPT_COOKIE_KEY, type ModelSelection } from '~/utils/constants';
 import { ModelSelector } from './ModelSelector';
 import { TeamSelector } from '~/components/convex/TeamSelector';
@@ -35,7 +34,6 @@ import { toast } from 'sonner';
 import { Menu as MenuComponent, MenuItem as MenuItemComponent } from '@ui/Menu';
 import { PencilSquareIcon } from '@heroicons/react/24/outline';
 import { ChatBubbleLeftIcon, DocumentArrowUpIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
-import { useAuth } from '@workos-inc/authkit-react';
 import { useConvex } from 'convex/react';
 
 const PROMPT_LENGTH_WARNING_THRESHOLD = 2000;
@@ -282,11 +280,9 @@ export const MessageInput = memo(function MessageInput({
               size="sm"
             />
           )}
-          {chatStarted && <ConvexConnection />}
           {input.length > 3 && input.length <= PROMPT_LENGTH_WARNING_THRESHOLD && <NewLineShortcut />}
           {input.length > PROMPT_LENGTH_WARNING_THRESHOLD && <CharacterWarning />}
           <div className="ml-auto flex items-center gap-1">
-            {chefAuthState.kind === 'unauthenticated' && <SignInButton />}
             {chefAuthState.kind === 'fullyLoggedIn' && (
               <MenuComponent
                 buttonProps={{
@@ -595,26 +591,6 @@ const CharacterWarning = memo(function CharacterWarning() {
         Prompt exceeds {PROMPT_LENGTH_WARNING_THRESHOLD.toLocaleString()} characters
       </div>
     </Tooltip>
-  );
-});
-
-const SignInButton = memo(function SignInButton() {
-  const { signIn } = useAuth();
-
-  return (
-    <Button
-      variant="neutral"
-      onClick={() => {
-        void signIn();
-      }}
-      size="xs"
-      className="text-xs font-normal"
-      icon={<img className="size-4" src="/icons/Convex.svg" alt="Convex" />}
-    >
-      <>
-        <span>Sign in</span>
-      </>
-    </Button>
   );
 });
 

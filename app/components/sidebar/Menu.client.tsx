@@ -79,15 +79,8 @@ export const Menu = memo(({ isOpen, onClose }: MenuProps) => {
         .action(api.messages.remove, {
           id: item.id,
           sessionId,
-          teamSlug: convexProjectInfo?.teamSlug,
-          projectSlug: convexProjectInfo?.projectSlug,
-          shouldDeleteConvexProject: shouldDeleteConvexProject && convexProjectInfo?.kind === 'connected',
-          accessToken,
         })
-        .then((result) => {
-          if (result && result.kind === 'error') {
-            toast.error(result.error);
-          }
+        .then(() => {
           if (getKnownInitialId() === item.initialId) {
             // hard page navigation to clear the stores
             window.location.pathname = '/';
@@ -98,14 +91,7 @@ export const Menu = memo(({ isOpen, onClose }: MenuProps) => {
           logger.error(error);
         });
     },
-    [
-      convex,
-      sessionId,
-      convexProjectInfo?.teamSlug,
-      convexProjectInfo?.projectSlug,
-      convexProjectInfo?.kind,
-      shouldDeleteConvexProject,
-    ],
+    [convex, sessionId],
   );
 
   const closeDialog = () => {

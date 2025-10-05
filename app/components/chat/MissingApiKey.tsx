@@ -9,6 +9,7 @@ import { type ModelProvider, displayModelProviderName } from './ModelSelector';
 import { KeyIcon } from '@heroicons/react/24/outline';
 import type { Doc } from '@convex/_generated/dataModel';
 import { ConfirmationDialog } from '@ui/ConfirmationDialog';
+import { useConvexSessionId } from '~/lib/stores/sessionId';
 
 export interface MissingApiKeyProps {
   provider: ModelProvider;
@@ -22,6 +23,7 @@ export function MissingApiKey({ provider, requireKey, resetDisableChatMessage }:
   const [newKeyValue, setNewKeyValue] = useState('');
   const [showKey, setShowKey] = useState(false);
   const convex = useConvex();
+  const sessionId = useConvexSessionId();
   const useGeminiAuto = false;
 
   const handleSaveKey = async () => {
@@ -29,9 +31,9 @@ export function MissingApiKey({ provider, requireKey, resetDisableChatMessage }:
       setIsSaving(true);
 
       // Get the current API key data
-      const apiKey = await convex.query(api.apiKeys.apiKeyForCurrentMember);
+      const apiKey = await convex.query(api.apiKeys.apiKeyForCurrentMember, { sessionId });
 
-      const apiKeyMutation: Doc<'convexMembers'>['apiKey'] = {
+      const apiKeyMutation: Doc<'sessions'>['apiKey'] = {
         preference: apiKey?.preference || ('quotaExhausted' as 'always' | 'quotaExhausted'),
         value: apiKey?.value || undefined,
         openai: apiKey?.openai || undefined,
@@ -66,6 +68,7 @@ export function MissingApiKey({ provider, requireKey, resetDisableChatMessage }:
       }
 
       await convex.mutation(api.apiKeys.setApiKeyForCurrentMember, {
+        sessionId,
         apiKey: apiKeyMutation,
       });
 
@@ -88,10 +91,11 @@ export function MissingApiKey({ provider, requireKey, resetDisableChatMessage }:
       setIsSaving(true);
 
       // Get the current API key data
-      const apiKey = await convex.query(api.apiKeys.apiKeyForCurrentMember);
+      const apiKey = await convex.query(api.apiKeys.apiKeyForCurrentMember, { sessionId });
 
       // Change preference to 'quotaExhausted' but keep all the existing keys
       await convex.mutation(api.apiKeys.setApiKeyForCurrentMember, {
+        sessionId,
         apiKey: {
           preference: 'quotaExhausted',
           value: apiKey?.value,

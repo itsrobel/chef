@@ -28,30 +28,13 @@ export default defineSchema({
    * We only show chats for the current session, so we rely on the session ID being
    * unguessable (i.e. we should never list session IDs or return them in function
    * results).
+   *
+   * Anonymous sessions - no authentication required.
+   * API keys are stored per-session.
    */
   sessions: defineTable({
-    // When auth-ing with convex.dev, we'll save a `convexMembers` document and
-    // reference it here.
-    memberId: v.optional(v.id("convexMembers")),
-  }).index("byMemberId", ["memberId"]),
-
-  convexMembers: defineTable({
-    tokenIdentifier: v.string(),
     apiKey: v.optional(apiKeyValidator),
-    convexMemberId: v.optional(v.string()),
-    softDeletedForWorkOSMerge: v.optional(v.boolean()),
-    // Not authoritative, just a cache of the user's profile from WorkOS/provision host.
-    cachedProfile: v.optional(
-      v.object({
-        username: v.string(),
-        avatar: v.string(),
-        email: v.string(),
-        id: v.string(),
-      }),
-    ),
-  })
-    .index("byTokenIdentifier", ["tokenIdentifier"])
-    .index("byConvexMemberId", ["convexMemberId", "softDeletedForWorkOSMerge"]),
+  }),
 
   /*
    * All chats have two IDs -- an `initialId` that is always set (UUID) and a `urlId`
@@ -73,39 +56,12 @@ export default defineSchema({
     lastSubchatIndex: v.number(),
     hasBeenDeployed: v.optional(v.boolean()),
     isDeleted: v.optional(v.boolean()),
-    convexProject: v.optional(
-      v.union(
-        v.object({
-          kind: v.literal("connected"),
-          projectSlug: v.string(),
-          teamSlug: v.string(),
-          // for this member's dev deployment
-          deploymentUrl: v.string(),
-          deploymentName: v.string(),
-          warningMessage: v.optional(v.string()),
-        }),
-        v.object({
-          kind: v.literal("connecting"),
-          checkConnectionJobId: v.optional(v.id("_scheduled_functions")),
-        }),
-        v.object({
-          kind: v.literal("failed"),
-          errorMessage: v.string(),
-        }),
-      ),
-    ),
   })
     .index("byCreatorAndId", ["creatorId", "initialId", "isDeleted"])
     .index("byCreatorAndUrlId", ["creatorId", "urlId", "isDeleted"])
     .index("bySnapshotId", ["snapshotId"])
     .index("byInitialId", ["initialId", "isDeleted"]),
 
-  convexProjectCredentials: defineTable({
-    projectSlug: v.string(),
-    teamSlug: v.string(),
-    memberId: v.optional(v.id("convexMembers")),
-    projectDeployKey: v.string(),
-  }).index("bySlugs", ["teamSlug", "projectSlug"]),
   chatMessagesStorageState: defineTable({
     chatId: v.id("chats"),
     storageId: v.union(v.id("_storage"), v.null()),
@@ -165,25 +121,6 @@ export default defineSchema({
     .index("byChatId", ["chatId"])
     .index("byAllowShowInGallery", ["allowShowInGallery"])
     .index("byThumbnailImageStorageId", ["thumbnailImageStorageId"]),
-
-  memberOpenAITokens: defineTable({
-    memberId: v.id("convexMembers"),
-    token: v.string(),
-    requestsRemaining: v.number(),
-    lastUsedTime: v.union(v.number(), v.null()),
-  })
-    .index("byMemberId", ["memberId"])
-    .index("byToken", ["token"]),
-
-  resendTokens: defineTable({
-    memberId: v.id("convexMembers"),
-    token: v.string(),
-    verifiedEmail: v.string(),
-    requestsRemaining: v.number(),
-    lastUsedTime: v.union(v.number(), v.null()),
-  })
-    .index("byMemberId", ["memberId"])
-    .index("byToken", ["token"]),
 
   /*
    * The entire prompt sent to a LLM and the response we received.

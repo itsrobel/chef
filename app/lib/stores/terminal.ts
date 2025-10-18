@@ -91,6 +91,28 @@ export class TerminalStore {
     }
   }
 
+  async runConvexSetup() {
+    // Show the Convex deploy terminal
+    isConvexDeployTerminalVisibleStore.set(true);
+    activeTerminalTabStore.set(CONVEX_DEPLOY_TAB_INDEX);
+    workbenchStore.currentView.set('code');
+
+    // Give React time to render the terminal component before waiting
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    // Wait for terminal to be attached and ready
+    await this.#deployTerminal.ready();
+
+    // Give the terminal a moment to fully initialize
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    // Send the command to the terminal as if the user typed it (allows interactive input)
+    await this.#deployTerminal.sendInput('npx convex dev --once\n');
+
+    // Return the WebContainer so caller can watch for file changes
+    return await this.#webcontainer;
+  }
+
   async attachTerminal(terminal: ITerminal) {
     try {
       const shellProcess = await newShellProcess(await this.#webcontainer, terminal);

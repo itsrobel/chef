@@ -8,7 +8,6 @@
  * @module
  */
 
-import type * as apiKeys from "../apiKeys.js";
 import type * as cleanup from "../cleanup.js";
 import type * as compressMessages from "../compressMessages.js";
 import type * as crons from "../crons.js";
@@ -44,7 +43,6 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  apiKeys: typeof apiKeys;
   cleanup: typeof cleanup;
   compressMessages: typeof compressMessages;
   crons: typeof crons;

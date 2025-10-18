@@ -17,7 +17,10 @@ import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 import 'allotment/dist/style.css';
 
 import { ErrorDisplay } from './components/ErrorComponent';
-import useVersionNotificationBanner from './components/VersionNotificationBanner';
+import { ConvexLoginModal } from './components/ConvexLoginModal';
+import { useStore as useNanostore } from '@nanostores/react';
+import { convexLoginModalOpenStore, closeConvexLoginModal, openConvexLoginModal } from './lib/stores/convexAuth';
+import { getAccessToken } from './lib/convex-storage';
 
 export async function loader() {
   // These environment variables are available in the client (they aren't secret).
@@ -77,6 +80,7 @@ export const Head = createHead(() => (
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const theme = useStore(themeStore);
+  const convexLoginModalOpen = useNanostore(convexLoginModalOpenStore);
   const loaderData = useRouteLoaderData<typeof loader>('root');
   const CONVEX_URL = import.meta.env.VITE_CONVEX_URL || (loaderData as any)?.ENV.CONVEX_URL;
   if (!CONVEX_URL) {
@@ -100,7 +104,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
     document.querySelector('html')?.setAttribute('class', theme);
   }, [theme]);
 
-  useVersionNotificationBanner();
+  // Check for Convex OAuth token on page load
+  useEffect(() => {
+    const accessToken = getAccessToken();
+    if (!accessToken) {
+      console.log('No access token found, showing login modal');
+      openConvexLoginModal();
+    }
+  }, []);
 
   return (
     <>
@@ -108,7 +119,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {() => {
           return (
             <DndProvider backend={HTML5Backend}>
-              <ConvexProvider client={convex}>{children}</ConvexProvider>
+              <ConvexProvider client={convex}>
+                {children}
+                <ConvexLoginModal open={convexLoginModalOpen} onClose={closeConvexLoginModal} />
+              </ConvexProvider>
             </DndProvider>
           );
         }}

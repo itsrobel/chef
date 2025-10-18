@@ -200,6 +200,10 @@ export class WorkbenchStore {
     this.#terminalStore.attachDeployTerminal(terminal, options);
   }
 
+  runConvexSetup() {
+    return this.#terminalStore.runConvexSetup();
+  }
+
   onTerminalResize(cols: number, rows: number) {
     this.#terminalStore.onTerminalResize(cols, rows);
   }

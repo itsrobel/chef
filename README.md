@@ -58,22 +58,21 @@ npx convex dev --once # follow the steps to create a Convex project in your team
 
 Note: `nvm` only works on Mac and Linux. If you are using Windows, you may have to find an alternative.
 
-**3. Set up Chef OAuth application**
+**3. Set up Convex Platform OAuth**
 
-Go to the Convex [dashboard](https://dashboard.convex.dev/team/settings/applications/oauth-apps) and create an OAuth application. The team you use to create the application will be the only team you can sign-in with on local Chef. Redirect URIs will not matter, but you can set one to http://127.0.0.1:5173 (or whatever port you’ll run the Chef UI on) so that the form can be submitted.
+Go to the Convex [dashboard](https://dashboard.convex.dev/team/settings/applications/oauth-apps) and create an OAuth application. This allows Chef to provision Convex deployments on your behalf.
 
-**4. Set up Convex deployment**
+- Add redirect URI: `http://localhost:5173/auth/callback`
+- Copy the Client ID and Client Secret
 
-Use `npx convex dashboard` to open the Convex [dashboard](https://dashboard.convex.dev) and go to Settings → Environment Variables. Then, set the following environment variables:
+Then, update `.env.development` with your OAuth credentials:
 
 ```env
-BIG_BRAIN_HOST=https://api.convex.dev
-CONVEX_OAUTH_CLIENT_ID=<value from oauth setup>
-CONVEX_OAUTH_CLIENT_SECRET=<value from oauth setup>
-WORKOS_CLIENT_ID=<value from .env.development>
+VITE_CONVEX_OAUTH_CLIENT_ID=<your client id>
+VITE_CONVEX_OAUTH_CLIENT_SECRET=<your client secret>
 ```
 
-**5. Add API keys for model providers**
+**4. Add API keys for model providers**
 
 Add any of the following API keys in your `.env.local` to enable code generation:
 
@@ -86,7 +85,7 @@ XAI_API_KEY=<your api key>
 
 Note: You can also add your own API keys through the Chef settings page.
 
-**6. Run Chef backend and frontend**
+**5. Run Chef backend and frontend**
 
 Run the following commands in your terminal:
 

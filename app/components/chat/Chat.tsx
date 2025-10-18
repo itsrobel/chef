@@ -24,6 +24,7 @@ import { chatIdStore, initialIdStore } from '~/lib/stores/chatId';
 import { useConvex } from 'convex/react';
 import { api } from '@convex/_generated/api';
 import { useConvexSessionIdOrNullOrLoading } from '~/lib/stores/sessionId';
+import { getAccessToken } from '~/lib/convex-storage';
 import type { Id } from '@convex/_generated/dataModel';
 import { formatDistanceStrict } from 'date-fns';
 import { atom } from 'nanostores';
@@ -176,8 +177,34 @@ export const Chat = memo(
     const teamSlug = useSelectedTeamSlug();
     const usage = useUsage({ teamSlug });
     const forceDisable = usage && !usage.isLoadingUsage && !usage.isPaidPlan && usage.usagePercentage > 200;
+    // Check if user is authenticated with Convex OAuth
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    useEffect(() => {
+      // Initial check
+      const checkAuth = () => {
+        const accessToken = getAccessToken();
+        setIsAuthenticated(!!accessToken);
+      };
+
+      checkAuth();
+
+      // Recheck when window regains focus (e.g., after OAuth redirect)
+      window.addEventListener('focus', checkAuth);
+
+      // Recheck periodically (every 2 seconds) to catch auth changes
+      const interval = setInterval(checkAuth, 2000);
+
+      return () => {
+        window.removeEventListener('focus', checkAuth);
+        clearInterval(interval);
+      };
+    }, []);
     // Normally set manually, but you can force it by going way over quota (useful simulating this state)
-    const disableChatMessage = forceDisable ? { type: 'ExceededQuota' as const } : _disableChatMessage;
+    const disableChatMessage = !isAuthenticated
+      ? 'Please log in with Convex to start chatting'
+      : forceDisable
+        ? { type: 'ExceededQuota' as const }
+        : _disableChatMessage;
 
     const [sendMessageInProgress, setSendMessageInProgress] = useState(false);
 
@@ -200,9 +227,8 @@ export const Chat = memo(
         const retries = retryState.get();
         let modelChoice: string | undefined = undefined;
         if (modelSelection === 'auto') {
-          const providers: ProviderType[] = anthropicProviders;
-          modelProvider = providers[retries.numFailures % providers.length];
-          modelChoice = 'claude-sonnet-4-0';
+          modelProvider = 'OpenAI';
+          modelChoice = 'gpt-4o';
         } else if (modelSelection === 'claude-3-5-haiku') {
           modelProvider = 'Anthropic';
           modelChoice = 'claude-3-5-haiku-latest';
@@ -409,6 +435,17 @@ export const Chat = memo(
         if (!chatInitialized) {
           return;
         }
+
+        // Trigger Convex setup after first message (runs in background)
+        import('~/lib/stores/startup/useContainerSetup').then(({ triggerConvexSetupIfNeeded }) => {
+          import('~/lib/webcontainer').then(({ webcontainer }) => {
+            webcontainer.then((container) => {
+              triggerConvexSetupIfNeeded(container).catch((err) => {
+                console.error('Failed to setup Convex:', err);
+              });
+            });
+          });
+        });
 
         runAnimation();
 

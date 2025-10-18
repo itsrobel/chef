@@ -164,7 +164,7 @@ function TerminalWrapper({
       onTerminalReady={onTerminalReady}
       onTerminalResize={onTerminalResize}
       theme={theme}
-      readonly={index === CONVEX_DEPLOY_TAB_INDEX}
+      readonly={false}
     />
   );
 }

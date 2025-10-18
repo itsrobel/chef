@@ -1,19 +1,12 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import type { ToolStatus } from '~/lib/common/types';
-import { toast } from 'sonner';
 import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
 import { chatStore } from '~/lib/stores/chatId';
 import { Spinner } from '@ui/Spinner';
-import { ExclamationTriangleIcon, CheckCircledIcon, ResetIcon, ClipboardIcon } from '@radix-ui/react-icons';
+import { ExclamationTriangleIcon, CheckCircledIcon, ResetIcon } from '@radix-ui/react-icons';
 import { useEffect, useState } from 'react';
 import { Button } from '@ui/Button';
-import { useUsage } from '~/lib/stores/usage';
-import { Donut } from '@ui/Donut';
-import { Loading } from '@ui/Loading';
-import { useSelectedTeamSlug } from '~/lib/stores/convexTeams';
-import { useReferralCode, useReferralStats } from '~/lib/hooks/useReferralCode';
-import { Popover } from '@ui/Popover';
 
 type StreamStatus = 'streaming' | 'submitted' | 'ready' | 'error';
 
@@ -26,12 +19,10 @@ interface StreamingIndicatorProps {
   resendMessage: () => void;
 }
 
-// Icon components
 const WarningIcon = () => <ExclamationTriangleIcon className="text-[var(--cvx-content-warning)]" />;
 const LoadingIcon = () => <Spinner />;
 const CheckIcon = () => <CheckCircledIcon />;
 
-// Status messages
 export const STATUS_MESSAGES = {
   cooking: 'Cooking...',
   stopped: 'Generation stopped',
@@ -61,7 +52,6 @@ const COOKING_SPLINES_DURATION = 4000;
 
 export default function StreamingIndicator(props: StreamingIndicatorProps) {
   const { aborted } = useStore(chatStore);
-  const teamSlug = useSelectedTeamSlug();
 
   let streamStatus = props.streamStatus;
   const anyToolRunning =
@@ -114,32 +104,8 @@ export default function StreamingIndicator(props: StreamingIndicatorProps) {
         message = STATUS_MESSAGES.error;
         if (props.currentError) {
           try {
-            const { code, error, details } = JSON.parse(props.currentError?.message);
-            if (code === 'missing-api-key') {
-              message = (
-                <div>
-                  {error}{' '}
-                  <a href="/settings" className="text-content-link hover:underline">
-                    Set an API key
-                  </a>{' '}
-                  or switch to a different model provider.
-                </div>
-              );
-            } else if (code === 'no-tokens') {
-              message = (
-                <div>
-                  You&apos;ve used all the tokens included with your free plan.{' '}
-                  <a href="/settings" className="text-content-link hover:underline">
-                    Upgrade to a paid plan or add your own API key.
-                  </a>
-                </div>
-              );
-            } else {
-              message = error;
-            }
-            if (details) {
-              console.log('error details', details);
-            }
+            const { error } = JSON.parse(props.currentError?.message);
+            message = error;
           } catch (_) {
             console.log(props.currentError);
           }
@@ -178,7 +144,6 @@ export default function StreamingIndicator(props: StreamingIndicatorProps) {
                       <div className="">{icon}</div>
                       {message}
                       <div className="min-h-6 grow" />
-                      <LittleUsage teamSlug={teamSlug} streamStatus={streamStatus} />
                       {streamStatus === 'error' && (
                         <Button
                           type="button"
@@ -198,164 +163,5 @@ export default function StreamingIndicator(props: StreamingIndicatorProps) {
         </div>
       </motion.div>
     </AnimatePresence>
-  );
-}
-
-function UsageDonut({
-  tokenUsage,
-  label,
-  hidden,
-}: {
-  tokenUsage: { used: number; quota: number } | null;
-  label: string;
-  hidden: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className={classNames('h-6', { invisible: hidden })}>
-        {tokenUsage ? <Donut current={tokenUsage.used} max={tokenUsage.quota} /> : <Loading className="size-4" />}
-      </div>
-      <div className="text-sm">{label}</div>
-    </div>
-  );
-}
-
-function displayChefTokenNumber(num: number) {
-  if (num >= 1_000_000) {
-    return `${(num / 1_000_000).toFixed(1)}M`;
-  } else if (num >= 1_000) {
-    return `${(num / 1_000).toFixed(0)}K`;
-  }
-  return num.toString();
-}
-
-function LittleUsage({ teamSlug, streamStatus }: { teamSlug: string | null; streamStatus: StreamStatus }) {
-  const { isLoadingUsage, usagePercentage, used, quota, isPaidPlan, refetch } = useUsage({ teamSlug });
-  const referralStats = useReferralStats();
-  const referralCode = useReferralCode();
-  const loading = isLoadingUsage || !referralStats || !referralCode || !teamSlug;
-
-  useEffect(() => {
-    if (streamStatus === 'ready') {
-      refetch();
-    }
-  }, [streamStatus, refetch]);
-
-  if (!isLoadingUsage && (used == null || quota == null)) {
-    return null;
-  }
-
-  // No client-side API keys - show referral or upgrade CTA
-  const needsMore = !isPaidPlan;
-  // donut isn't relevant if over quota
-  const hideDonut = !!isPaidPlan && usagePercentage > 100;
-
-  // appears to the right of the donut
-  const label = isPaidPlan
-    ? usagePercentage > 100
-      ? `Token usage`
-      : `${Math.floor(usagePercentage)}% tokens used`
-    : usagePercentage > 100
-      ? `Out of tokens`
-      : `${Math.floor(usagePercentage)}% tokens used`;
-
-  const detailedLabel = isPaidPlan
-    ? `${displayChefTokenNumber(used)} tokens used / ${displayChefTokenNumber(quota)} included (${Math.floor(usagePercentage)}%)`
-    : isLoadingUsage
-      ? ''
-      : usagePercentage < 100
-        ? `${displayChefTokenNumber(used)} tokens used / ${displayChefTokenNumber(quota)} (${Math.floor(usagePercentage)}%)`
-        : `Out of tokens`;
-
-  return (
-    <div className={classNames('flex flex-col items-center', needsMore ? 'h-auto' : 'h-6')}>
-      <Popover
-        button={
-          <button className="hover:text-content-primary">
-            <div className="flex flex-col items-end gap-1 text-sm text-content-secondary">
-              <UsageDonut tokenUsage={loading ? null : { used, quota }} label={label} hidden={hideDonut} />
-              {needsMore && (
-                <div className="border-b border-dotted border-content-secondary text-xs text-content-secondary hover:border-content-primary ">
-                  Upgrade or refer a friend to get more tokens
-                </div>
-              )}
-            </div>
-          </button>
-        }
-        placement="top-end"
-        offset={[6, 8]}
-        portal={true}
-        className="w-96"
-      >
-        {loading ? null : (
-          <div>
-            <UsageDonut tokenUsage={loading ? null : { used, quota }} label={detailedLabel} hidden={false} />
-            <p className="mt-1 text-xs text-content-secondary">
-              {isPaidPlan
-                ? `Chef tokens power code generation. Your team's Chef tokens reset to ${displayChefTokenNumber(quota)} on your regular billing cycle. Unused tokens from the previous month are not carried over. Additional Chef tokens cost $10 per 1M tokens.`
-                : 'Chef tokens power code generation. Tokens reset on the first of each month and tokens from the previous month are not carried over.'}
-            </p>
-            <ul className="mt-2 space-y-2 text-sm text-content-primary">
-              {isPaidPlan ? null : (
-                <li className="mt-2 border-t pt-2">
-                  <Button
-                    href={`https://dashboard.convex.dev/t/${teamSlug}/settings/billing?source=chef`}
-                    target="_blank"
-                    variant="unstyled"
-                    className="underline hover:text-content-link"
-                  >
-                    Upgrade your plan
-                  </Button>{' '}
-                  to get more tokens.
-                </li>
-              )}
-              {!isPaidPlan && (
-                <li className="border-t pt-2">
-                  <div className="flex flex-col items-center gap-2">
-                    <p>
-                      {referralStats.left === 5
-                        ? 'Refer a friend '
-                        : `Refer up to ${referralStats.left} more new users `}
-                      to get 85K additional Chef tokens per month.
-                    </p>
-                    {referralStats.left > 0 && <Referrals referralCode={referralCode} />}
-                  </div>
-                </li>
-              )}
-              <li className="mt-2 border-t pt-2 text-xs text-content-secondary">
-                Chef tokens are provided for free. Server-side API keys can be configured via environment variables.
-              </li>
-            </ul>
-          </div>
-        )}
-      </Popover>
-    </div>
-  );
-}
-
-function Referrals({ referralCode }: { referralCode: string }) {
-  const copyToClipboard = (url: string) => {
-    navigator.clipboard.writeText(url);
-    toast.success('Link copied to clipboard!');
-  };
-
-  return (
-    <div className="-mx-2 w-full flex-1 rounded-md text-content-primary">
-      <div className="relative flex w-full items-center gap-2">
-        <input
-          type="text"
-          readOnly
-          value={`https://convex.dev/try-chef/${referralCode}`}
-          className="w-full flex-1 rounded-md border bg-bolt-elements-background-depth-2 px-3 py-1.5 text-sm text-content-primary"
-        />
-        <Button
-          variant="neutral"
-          size="xs"
-          onClick={() => copyToClipboard(`https://convex.dev/try-chef/${referralCode}`)}
-          tip="Copy link"
-          icon={<ClipboardIcon />}
-        />
-      </div>
-    </div>
   );
 }

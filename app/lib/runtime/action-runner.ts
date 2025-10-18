@@ -427,6 +427,21 @@ export class ActionRunner {
           break;
         }
         case 'deploy': {
+          // Check if Convex project is configured
+          const convexProject = convexProjectStore.get();
+          if (!convexProject) {
+            result = `Error: No Convex project configured.
+
+To deploy with Convex backend:
+1. Reload the page
+2. Click "Create Convex Project" when prompted
+3. Authenticate with your Convex account
+4. Try deploying again
+
+Alternatively, you can skip Convex setup and deploy without a backend.`;
+            break;
+          }
+
           const container = await this.#webcontainer;
           await waitForContainerBootState(ContainerBootState.READY);
 

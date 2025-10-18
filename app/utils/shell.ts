@@ -130,6 +130,15 @@ export class BoltShell {
     return { output: cleanedOutput, exitCode };
   }
 
+  async sendInput(text: string) {
+    // Send text to the terminal as if the user typed it (for interactive commands)
+    const shellInput = this.#shellInputStream;
+    if (!shellInput) {
+      throw new Error('Shell input stream not initialized');
+    }
+    shellInput.write(text);
+  }
+
   async newBoltShellProcess(webcontainer: WebContainer, terminal: ITerminal) {
     const args: string[] = [];
 
